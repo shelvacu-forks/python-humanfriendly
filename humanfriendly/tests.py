@@ -1008,7 +1008,7 @@ class HumanFriendlyTestCase(TestCase):
         assert ansi_style(background='blue') == '%s44%s' % (ANSI_CSI, ANSI_SGR)
         assert ansi_style(color='blue', bright=True) == '%s94%s' % (ANSI_CSI, ANSI_SGR)
         assert ansi_style(color=214) == '%s38;5;214%s' % (ANSI_CSI, ANSI_SGR)
-        assert ansi_style(background=214) == '%s39;5;214%s' % (ANSI_CSI, ANSI_SGR)
+        assert ansi_style(background=214) == '%s48;5;214%s' % (ANSI_CSI, ANSI_SGR)
         assert ansi_style(color=(0, 0, 0)) == '%s38;2;0;0;0%s' % (ANSI_CSI, ANSI_SGR)
         assert ansi_style(color=(255, 255, 255)) == '%s38;2;255;255;255%s' % (ANSI_CSI, ANSI_SGR)
         assert ansi_style(background=(50, 100, 150)) == '%s48;2;50;100;150%s' % (ANSI_CSI, ANSI_SGR)
