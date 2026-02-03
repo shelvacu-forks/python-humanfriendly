@@ -32,6 +32,7 @@ install:
 	test -x "$(VIRTUAL_ENV)/bin/python" || virtualenv --python=$(PYTHON) --quiet "$(VIRTUAL_ENV)"
 	pip uninstall --yes $(PACKAGE_NAME) &>/dev/null || true
 	pip install --quiet --no-deps --ignore-installed .
+	rm -r build
 
 reset:
 	$(MAKE) clean
@@ -40,7 +41,7 @@ reset:
 
 check: install
 	pip install --upgrade --quiet --requirement=requirements-checks.txt
-	flake8
+	flake8 --exclude .venv
 
 test: install
 	pip install --quiet --requirement=requirements-tests.txt

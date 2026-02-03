@@ -61,41 +61,16 @@ __all__ = (
 
 # Standard library modules.
 import sys
+from shutil import which
+from html.parser import HTMLParser
+from io import StringIO
+from html.entities import name2codepoint
+from time import monotonic
 
-# Differences between Python 2 and 3.
-try:
-    # Python 2.
-    unicode = unicode
-    unichr = unichr
-    basestring = basestring
-    interactive_prompt = raw_input
-    from distutils.spawn import find_executable as which
-    from HTMLParser import HTMLParser
-    from StringIO import StringIO
-    from htmlentitydefs import name2codepoint
-except (ImportError, NameError):
-    # Python 3.
-    unicode = str
-    unichr = chr
-    basestring = str
-    interactive_prompt = input
-    from shutil import which
-    from html.parser import HTMLParser
-    from io import StringIO
-    from html.entities import name2codepoint
-
-try:
-    # Python 3.3 and higher.
-    from time import monotonic
-except ImportError:
-    # A replacement for older Python versions:
-    # https://pypi.org/project/monotonic/
-    try:
-        from monotonic import monotonic
-    except (ImportError, RuntimeError):
-        # We fall back to the old behavior of using time.time() instead of
-        # failing when {time,monotonic}.monotonic() are both missing.
-        from time import time as monotonic
+unicode = str
+unichr = chr
+basestring = str
+interactive_prompt = input
 
 
 def coerce_string(value):
