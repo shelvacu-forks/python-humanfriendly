@@ -127,7 +127,7 @@ class CaseInsensitiveDict[KT: (str, bytes), VT](MutableMapping[KT, VT]):
         **kw: VT,
     ):
         """Initialize a :class:`CaseInsensitiveDict` object."""
-        super().__init__()
+        self.wrapped = collections.OrderedDict()
         self.update(other, **kw)
 
     def popitem(self, last: bool = True) -> tuple[KT, VT]:
