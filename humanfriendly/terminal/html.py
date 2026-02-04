@@ -8,6 +8,8 @@
 
 # Standard library modules.
 import re
+from collections.abc import Callable
+from typing import Protocol, Any
 
 # Modules included in our package.
 from humanfriendly.compat import HTMLParser, StringIO, name2codepoint, unichr
@@ -18,7 +20,11 @@ from humanfriendly.terminal import ANSI_COLOR_CODES, ANSI_RESET, ansi_style
 __all__ = ('HTMLConverter', 'html_to_ansi')
 
 
-def html_to_ansi(data, callback=None):
+class Writable(Protocol):
+    def write(self, text:str, /) -> Any: ...
+
+
+def html_to_ansi(data:str, callback:None|Callable[[str], str]=None) -> str:
     """
     Convert HTML with simple text formatting to text with ANSI escape sequences.
 
@@ -31,11 +37,14 @@ def html_to_ansi(data, callback=None):
     example with a screenshot.
     """
     converter = HTMLConverter(callback=callback)
-    return converter(data)
+    res = converter(data)
+    assert res is not None
+    return res
 
 
 class HTMLConverter(HTMLParser):
-
+    callback:None|Callable[[str], str]
+    output:StringIO|Writable
     """
     Convert HTML with simple text formatting to text with ANSI escape sequences.
 
@@ -120,7 +129,7 @@ class HTMLConverter(HTMLParser):
     BLOCK_TAGS = ('div', 'p', 'pre')
     """The names of tags that are padded with vertical whitespace."""
 
-    def __init__(self, *args, **kw):
+    def __init__(self, *args, callback:None|Callable[[str], str]=None, output:StringIO|Writable=StringIO(), **kw):
         """
         Initialize an :class:`HTMLConverter` object.
 
@@ -133,9 +142,8 @@ class HTMLConverter(HTMLParser):
                        given file-like object. If this is not given a new
                        :class:`~python3:io.StringIO` object is created.
         """
-        # Hide our optional keyword arguments from the superclass.
-        self.callback = kw.pop("callback", None)
-        self.output = kw.pop("output", None)
+        self.callback = callback
+        self.output = output
         # Initialize the superclass.
         HTMLParser.__init__(self, *args, **kw)
 
@@ -187,13 +195,13 @@ class HTMLConverter(HTMLParser):
         if style:
             self.output.write(ansi_style(**style))
 
-    def handle_charref(self, value):
+    def handle_charref(self, name):
         """
         Process a decimal or hexadecimal numeric character reference.
 
         :param value: The decimal or hexadecimal value (a string).
         """
-        self.output.write(unichr(int(value[1:], 16) if value.startswith('x') else int(value)))
+        self.output.write(unichr(int(name[1:], 16) if name.startswith('x') else int(name)))
 
     def handle_data(self, data):
         """
@@ -285,7 +293,9 @@ class HTMLConverter(HTMLParser):
             self.push_styles(underline=True)
         elif tag == 'span':
             styles = {}
-            css = next((v for n, v in attrs if n == 'style'), "")
+            css = next((v for n, v in attrs if n == 'style'))
+            if css is None:
+                return
             for rule in css.split(';'):
                 name, _, value = rule.partition(':')
                 name = name.strip()

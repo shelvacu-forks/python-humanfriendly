@@ -31,6 +31,7 @@ import tempfile
 import time
 import unittest
 import shlex
+from collections.abc import Callable
 
 # Modules included in our package.
 from humanfriendly.compat import StringIO
@@ -63,7 +64,7 @@ __all__ = (
 )
 
 
-def configure_logging(log_level=logging.DEBUG):
+def configure_logging(log_level:int|str=logging.DEBUG) -> None:
     """configure_logging(log_level=logging.DEBUG)
     Automatically configure logging to the terminal.
 
@@ -85,7 +86,7 @@ def configure_logging(log_level=logging.DEBUG):
             datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def make_dirs(pathname):
+def make_dirs(pathname:str) -> None:
     """
     Create missing directories.
 
@@ -95,7 +96,7 @@ def make_dirs(pathname):
         os.makedirs(pathname)
 
 
-def retry(func, timeout=60, exc_type=AssertionError):
+def retry[T](func:Callable[[], T], timeout:float=60, exc_type:type[Exception]=AssertionError) -> T:
     """retry(func, timeout=60, exc_type=AssertionError)
     Retry a function until assertions no longer fail.
 
@@ -133,7 +134,7 @@ def retry(func, timeout=60, exc_type=AssertionError):
             pause *= 2
 
 
-def run_cli(entry_point, *arguments, **options):
+def run_cli(entry_point:Callable[[], object], *arguments_passed:str, capture:bool=True, input:str="", merged:bool=False, program_name:str=sys.executable) -> tuple[int, str]:
     """
     Test a command line entry point.
 
@@ -158,9 +159,9 @@ def run_cli(entry_point, *arguments, **options):
               1. The return code (an integer).
               2. The captured output (a string).
     """
+    arguments:list[str] = list(arguments_passed)
     # Add the `program_name' option to the arguments.
-    arguments = list(arguments)
-    arguments.insert(0, options.pop('program_name', sys.executable))
+    arguments.insert(0, program_name)
     # Log the command line arguments (and the fact that we're about to call the
     # command line entry point function).
     logger.debug("Calling command line entry point with arguments: %s", arguments)
@@ -168,14 +169,13 @@ def run_cli(entry_point, *arguments, **options):
     # interface raises an exception (whether the exception type is SystemExit
     # or something else).
     returncode = 0
-    stdout = None
-    stderr = None
+    stdout:str|None = None
+    stderr:str|None = None
     try:
         # Temporarily override sys.argv.
         with PatchedAttribute(sys, 'argv', arguments):
             # Manipulate the standard input/output/error streams?
-            options['enabled'] = options.pop('capture', True)
-            with CaptureOutput(**options) as capturer:
+            with CaptureOutput(enabled=capture, input=input, merged=merged) as capturer:
                 try:
                     # Call the command line interface.
                     entry_point()
@@ -190,18 +190,24 @@ def run_cli(entry_point, *arguments, **options):
     except BaseException as e:
         if isinstance(e, SystemExit):
             logger.debug("Intercepting return code %s from SystemExit exception.", e.code)
-            returncode = e.code
+            if e.code is None:
+                returncode = 0
+            elif isinstance(e.code, int):
+                returncode = e.code
+            else:
+                returncode = 1
         else:
             logger.warning("Defaulting return code to 1 due to raised exception.", exc_info=True)
             returncode = 1
     else:
         logger.debug("Command line entry point returned successfully!")
+    assert stdout is not None
+    assert stderr is not None
     # Always log the output captured on stdout/stderr, to make it easier to
     # diagnose test failures (but avoid duplicate logging when merged=True).
-    is_merged = options.get('merged', False)
     merged_streams = [('merged streams', stdout)]
     separate_streams = [('stdout', stdout), ('stderr', stderr)]
-    streams = merged_streams if is_merged else separate_streams
+    streams = merged_streams if merged else separate_streams
     for name, value in streams:
         if value:
             logger.debug("Output on %s:\n%s", name, value)
@@ -210,7 +216,7 @@ def run_cli(entry_point, *arguments, **options):
     return returncode, stdout
 
 
-def skip_on_raise(*exc_types):
+def skip_on_raise[**P, T](*exc_types: type[Exception]) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Decorate a test function to translation specific exception types to :exc:`unittest.SkipTest`.
 
@@ -230,7 +236,7 @@ def skip_on_raise(*exc_types):
     return decorator
 
 
-def touch(filename):
+def touch(filename:str) -> None:
     """
     The equivalent of the UNIX :man:`touch` program in Python.
 
@@ -249,7 +255,7 @@ class CallableTimedOut(Exception):
     """Raised by :func:`retry()` when the timeout expires."""
 
 
-class ContextManager(object):
+class ContextManager:
 
     """Base class to enable composition of context managers."""
 

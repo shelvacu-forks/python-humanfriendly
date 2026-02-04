@@ -22,6 +22,9 @@ import types
 import unittest
 import warnings
 import pytest
+import typing
+from typing import overload
+from collections.abc import Callable
 
 # Modules included in our package.
 from humanfriendly import (
@@ -95,12 +98,10 @@ from humanfriendly.terminal.html import html_to_ansi
 from humanfriendly.terminal.spinners import AutomaticSpinner, Spinner
 from humanfriendly.testing import (
     CallableTimedOut,
-    CaptureBuffer,
     MockedProgram,
     PatchedAttribute,
     PatchedItem,
     TemporaryDirectory,
-    TestCase,
     retry,
     run_cli,
     skip_on_raise,
@@ -130,8 +131,11 @@ from mock import MagicMock
 def assertEqual(a, b):
     assert a == b
 
-
-def assertRaises(exception_class, fn=None):
+@overload
+def assertRaises(exception_class:type[Exception]) -> pytest.RaisesExc: ...
+@overload
+def assertRaises(exception_class:type[Exception], fn:Callable[[], None]) -> None: ...
+def assertRaises(exception_class:type[Exception], fn:Callable[[], None]|None=None) -> pytest.RaisesExc|None:
     if fn is None:
         return pytest.raises(exception_class)
     with pytest.raises(exception_class):
@@ -166,7 +170,7 @@ def test_case_insensitive_dict():
     assert len(obj) == 0
     # Test support for dict.setdefault().
     obj = CaseInsensitiveDict(existing_key=42)
-    assert obj.setdefault('Existing_Key') == 42
+    assert obj.setdefault('Existing_Key', 1) == 42
     obj.setdefault('other_key', 11)
     assert obj['Other_Key'] == 11
     # Test support for dict.__contains__().
@@ -407,7 +411,7 @@ def test_pattern_coercion():
     assert pattern.match('FOOBAR')
     # Make sure invalid values raise the expected exception.
     with assertRaises(ValueError):
-        coerce_pattern([])
+        coerce_pattern([]) # type: ignore
 
 def test_format_timespan():
     """Test :func:`humanfriendly.format_timespan()`."""
@@ -1437,6 +1441,7 @@ def test_alias_proxy_sphinx_integration():
     """Test that aliases can be injected into generated documentation."""
     module = sys.modules[__name__]
     define_aliases(__name__, concatenate='humanfriendly.text.concatenate')
+    assert module.__doc__ is not None
     lines = module.__doc__.splitlines()
     deprecation_note_callback(app=None, what=None, name=None, obj=module, options=None, lines=lines)
     # Check that something was injected.

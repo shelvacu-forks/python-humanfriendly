@@ -18,6 +18,7 @@ by rendering interactive prompts on the terminal.
 # Standard library modules.
 import logging
 import sys
+from typing import Sequence, overload
 
 # Modules included in our package.
 from humanfriendly.compat import interactive_prompt
@@ -30,6 +31,7 @@ from humanfriendly.terminal import (
     warning,
 )
 from humanfriendly.text import format, concatenate
+from humanfriendly.decorators import args_from0
 
 # Public identifiers that require documentation.
 __all__ = (
@@ -51,7 +53,7 @@ MAX_ATTEMPTS = 10
 logger = logging.getLogger(__name__)
 
 
-def prompt_for_confirmation(question, default=None, padding=True):
+def prompt_for_confirmation(question:str, default:bool|None=None, padding:bool=True) -> bool|None:
     """
     Prompt the user for confirmation.
 
@@ -117,7 +119,7 @@ def prompt_for_confirmation(question, default=None, padding=True):
                     indent=' ' if padding else '', details=details)
 
 
-def prompt_for_choice(choices, default=None, padding=True):
+def prompt_for_choice(choices:Sequence[str], default:str|None=None, padding:bool=True) -> str|None:
     """
     Prompt the user to select a choice from a group of options.
 
@@ -187,8 +189,7 @@ def prompt_for_choice(choices, default=None, padding=True):
     ])
     prompt_text = prepare_prompt_text(prompt_text, bold=True)
     # Loop until a valid choice is made.
-    logger.debug("Requesting interactive choice on terminal (options are %s) ..",
-                 concatenate(map(repr, choices)))
+    logger.debug(f"Requesting interactive choice on terminal (options are {choices!r}) ..")
     for attempt in retry_limit():
         reply = prompt_for_input(prompt_text, '', padding=padding, strip=True)
         if not reply and default is not None:
@@ -231,7 +232,11 @@ def prompt_for_choice(choices, default=None, padding=True):
             warning("%sError: Invalid input (%s).", indent, details)
 
 
-def prompt_for_input(question, default=None, padding=True, strip=True):
+@overload
+def prompt_for_input(question:str, /, *, padding:bool=True, strip:bool=True) -> str|None: ...
+@overload
+def prompt_for_input(question:str, /, default:str, *, padding:bool=True, strip:bool=True) -> str: ...
+def prompt_for_input(question:str, /, default:str|None=None, *, padding:bool=True, strip:bool=True) -> str|None:
     """
     Prompt the user for input (free form text).
 
@@ -305,11 +310,14 @@ def prompt_for_input(question, default=None, padding=True, strip=True):
         # None because it's nicer for callers to be able to assume that the
         # return value is always a string.
         return default
-    else:
+    elif reply is not None and strip:
         return reply.strip()
+    else:
+        return reply
 
 
-def prepare_prompt_text(prompt_text, **options):
+@args_from0(ansi_wrap)
+def prepare_prompt_text(prompt_text:str, /, **options):
     """
     Wrap a text to be rendered as an interactive prompt in ANSI escape sequences.
 

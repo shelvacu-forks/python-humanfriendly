@@ -25,6 +25,13 @@ import random
 import re
 import string
 import textwrap
+from collections.abc import Iterable
+import typing
+
+if typing.TYPE_CHECKING:
+    from _typeshed import ConvertibleToFloat
+
+from humanfriendly.decorators import args_from0, args_from1
 
 # Public identifiers that require documentation.
 __all__ = (
@@ -46,7 +53,7 @@ __all__ = (
 )
 
 
-def compact(text, *args, **kw):
+def compact(text:str, *args:object, **kw:object) -> str:
     '''
     Compact whitespace in a string.
 
@@ -77,7 +84,7 @@ def compact(text, *args, **kw):
     return format(compacted_text, *args, **kw)
 
 
-def compact_empty_lines(text):
+def compact_empty_lines(text:str) -> str:
     """
     Replace repeating empty lines with a single empty line (similar to ``cat -s``).
 
@@ -94,7 +101,7 @@ def compact_empty_lines(text):
     return ''.join(lines)
 
 
-def concatenate(items, conjunction='and', serial_comma=False):
+def concatenate(items:Iterable[str], conjunction:str='and', serial_comma:bool=False) -> str:
     """
     Concatenate a list of items in a human friendly way.
 
@@ -134,7 +141,7 @@ def concatenate(items, conjunction='and', serial_comma=False):
         return ''
 
 
-def dedent(text, *args, **kw):
+def dedent(text:str, *args:object, **kw:object):
     """
     Dedent a string (remove common leading whitespace from all lines).
 
@@ -160,7 +167,7 @@ def dedent(text, *args, **kw):
     return format(trimmed_text, *args, **kw)
 
 
-def format(text, *args, **kw):
+def format(text:str, *args:object, **kw:object) -> str:
     """
     Format a string using the string formatting operator and/or :meth:`str.format()`.
 
@@ -244,7 +251,7 @@ def format(text, *args, **kw):
     return text
 
 
-def generate_slug(text, delimiter="-"):
+def generate_slug(text:str, delimiter:str="-") -> str:
     """
     Convert text to a normalized "slug" without whitespace.
 
@@ -265,7 +272,7 @@ def generate_slug(text, delimiter="-"):
     return slug
 
 
-def is_empty_line(text):
+def is_empty_line(text:str) -> bool:
     """
     Check if a text is empty or contains only whitespace.
 
@@ -276,7 +283,7 @@ def is_empty_line(text):
     return len(text) == 0 or text.isspace()
 
 
-def join_lines(text):
+def join_lines(text:str) -> str:
     """
     Remove "hard wrapping" from the paragraphs in a string.
 
@@ -292,21 +299,7 @@ def join_lines(text):
     return re.sub(r'(\S)\n(\S)', r'\1 \2', text)
 
 
-def pluralize(count, singular, plural=None):
-    """
-    Combine a count with the singular or plural form of a word.
-
-    :param count: The count (a number).
-    :param singular: The singular form of the word (a string).
-    :param plural: The plural form of the word (a string or :data:`None`).
-    :returns: The count and singular or plural word concatenated (a string).
-
-    See :func:`pluralize_raw()` for the logic underneath :func:`pluralize()`.
-    """
-    return '%s %s' % (count, pluralize_raw(count, singular, plural))
-
-
-def pluralize_raw(count, singular, plural=None):
+def pluralize_raw(count:"ConvertibleToFloat", singular:str, plural:str|None=None) -> str:
     """
     Select the singular or plural form of a word based on a count.
 
@@ -328,7 +321,22 @@ def pluralize_raw(count, singular, plural=None):
     return singular if float(count) == 1.0 else plural
 
 
-def random_string(length=(25, 100), characters=string.ascii_letters):
+@args_from0(pluralize_raw)
+def pluralize(count, singular, plural=None) -> str:
+    """
+    Combine a count with the singular or plural form of a word.
+
+    :param count: The count (a number).
+    :param singular: The singular form of the word (a string).
+    :param plural: The plural form of the word (a string or :data:`None`).
+    :returns: The count and singular or plural word concatenated (a string).
+
+    See :func:`pluralize_raw()` for the logic underneath :func:`pluralize()`.
+    """
+    return '%s %s' % (count, pluralize_raw(count, singular, plural))
+
+
+def random_string(length:int|tuple[int, int]=(25, 100), characters:str=string.ascii_letters) -> str:
     """random_string(length=(25, 100), characters=string.ascii_letters)
     Generate a random string.
 
@@ -343,12 +351,15 @@ def random_string(length=(25, 100), characters=string.ascii_letters):
     time I included it in :mod:`humanfriendly.text` I had already included
     variants of this function in seven different test suites :-).
     """
-    if not isinstance(length, numbers.Number):
-        length = random.randint(length[0], length[1])
-    return ''.join(random.choice(characters) for _ in range(length))
+    length_normalized:int
+    if isinstance(length, tuple):
+        length_normalized = random.randint(length[0], length[1])
+    else:
+        length_normalized = length
+    return ''.join(random.choice(characters) for _ in range(length_normalized))
 
 
-def split(text, delimiter=','):
+def split(text:str, delimiter:str=',') -> list[str]:
     """
     Split a comma-separated list of strings.
 
@@ -384,7 +395,7 @@ def split(text, delimiter=','):
     return [token.strip() for token in text.split(delimiter) if token and not token.isspace()]
 
 
-def split_paragraphs(text):
+def split_paragraphs(text:str) -> list[str]:
     """
     Split a string into paragraphs (one or more lines delimited by an empty line).
 
@@ -399,7 +410,7 @@ def split_paragraphs(text):
     return paragraphs
 
 
-def tokenize(text):
+def tokenize(text:str) -> list[str|float]:
     """
     Tokenize a text into numbers and strings.
 
@@ -434,7 +445,7 @@ def tokenize(text):
     return tokenized_input
 
 
-def trim_empty_lines(text):
+def trim_empty_lines(text:str) -> str:
     """
     Trim leading and trailing empty lines from the given text.
 

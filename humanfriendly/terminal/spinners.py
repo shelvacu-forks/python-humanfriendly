@@ -95,6 +95,7 @@ when the spinner ends.
 import multiprocessing
 import sys
 import time
+from typing import TypeVar, Protocol
 
 # Modules included in our package.
 from humanfriendly import Timer
@@ -110,13 +111,20 @@ GLYPHS = ["-", "\\", "|", "/"]
 MINIMUM_INTERVAL = 0.2
 """Spinners are redrawn with a frequency no higher than this number (a floating point number of seconds)."""
 
+_T_contra = TypeVar("_T_contra", contravariant=True)
 
-class Spinner(object):
+
+class Writer(Protocol[_T_contra]):
+    __slots__ = ()
+    def write(self, data: _T_contra, /) -> int: ...
+
+
+class Spinner:
 
     """Show a spinner on the terminal as a simple means of feedback to the user."""
 
     @deprecated_args('label', 'total', 'stream', 'interactive', 'timer')
-    def __init__(self, **options):
+    def __init__(self, label:str|None=None, total:int|None=None, stream:Writer[str]=sys.stderr, interactive:bool|None = None, timer:Timer|None=None, interval:float|int=MINIMUM_INTERVAL, glyphs:list[str]=GLYPHS):
         """
         Initialize a :class:`Spinner` object.
 
@@ -157,25 +165,25 @@ class Spinner(object):
           to :data:`GLYPHS`).
         """
         # Store initializer arguments.
-        self.interactive = options.get('interactive')
-        self.interval = options.get('interval', MINIMUM_INTERVAL)
-        self.label = options.get('label')
-        self.states = options.get('glyphs', GLYPHS)
-        self.stream = options.get('stream', sys.stderr)
-        self.timer = options.get('timer')
-        self.total = options.get('total')
+        self.interactive = interactive
+        self.interval = interval
+        self.label = label
+        self.states = glyphs
+        self.stream = stream
+        self.timer = timer
+        self.total = total
         # Define instance variables.
         self.counter = 0
         self.last_update = 0
         # Try to automatically discover whether the stream is connected to
         # a terminal, but don't fail if no isatty() method is available.
         if self.interactive is None:
-            try:
-                self.interactive = self.stream.isatty()
-            except Exception:
+            if hasattr(self.stream, 'isatty'):
+                self.interactive = self.stream.isatty() # type: ignore
+            else:
                 self.interactive = False
 
-    def step(self, progress=0, label=None):
+    def step(self, progress:int=0, label:str|None=None):
         """
         Advance the spinner by one step and redraw it.
 
@@ -252,7 +260,7 @@ class Spinner(object):
         self.clear()
 
 
-class AutomaticSpinner(object):
+class AutomaticSpinner:
 
     """
     Show a spinner on the terminal that automatically starts animating.
@@ -275,7 +283,7 @@ class AutomaticSpinner(object):
     time.
     """
 
-    def __init__(self, label, show_time=True):
+    def __init__(self, label:str, show_time:bool=True):
         """
         Initialize an automatic spinner.
 

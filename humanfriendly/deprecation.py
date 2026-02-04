@@ -30,8 +30,9 @@ import functools
 import importlib
 import inspect
 import sys
-import types
+from types import ModuleType
 import warnings
+from collections.abc import Callable
 
 # Modules included in our package.
 from humanfriendly.text import format
@@ -43,7 +44,7 @@ REGISTRY = collections.defaultdict(dict)
 __all__ = ("DeprecationProxy", "define_aliases", "deprecated_args", "get_aliases", "is_method")
 
 
-def define_aliases(module_name, **aliases):
+def define_aliases(module_name:str, **aliases: str):
     """
     Update a module with backwards compatible aliases.
 
@@ -78,7 +79,7 @@ def define_aliases(module_name, **aliases):
         sys.modules[module_name] = proxy
 
 
-def get_aliases(module_name):
+def get_aliases(module_name:str) -> dict[str, object]:
     """
     Get the aliases defined by a module.
 
@@ -97,7 +98,7 @@ def get_aliases(module_name):
     return REGISTRY.get(module_name, {})
 
 
-def deprecated_args(*names):
+def deprecated_args(*names:str) -> Callable[[Callable], Callable]:
     """
     Deprecate positional arguments without dropping backwards compatibility.
 
@@ -187,21 +188,18 @@ def deprecated_args(*names):
 
 def is_method(function):
     """Check if the expected usage of the given function is as an instance method."""
-    try:
-        # Python 3.3 and newer.
-        signature = inspect.signature(function)
-        return "self" in signature.parameters
-    except AttributeError:
-        # Python 3.2 and older.
-        metadata = inspect.getargspec(function)
-        return "self" in metadata.args
+    signature = inspect.signature(function)
+    return "self" in signature.parameters
 
 
-class DeprecationProxy(types.ModuleType):
+class DeprecationProxy(ModuleType):
 
     """Emit deprecation warnings for imports that should be updated."""
 
-    def __init__(self, module, aliases):
+    module:ModuleType
+    aliases:dict[str,str]
+
+    def __init__(self, module:ModuleType, aliases:dict[str,str]):
         """
         Initialize an :class:`DeprecationProxy` object.
 
@@ -209,12 +207,12 @@ class DeprecationProxy(types.ModuleType):
         :param aliases: A dictionary of aliases.
         """
         # Initialize our superclass.
-        super(DeprecationProxy, self).__init__(name=module.__name__)
+        super().__init__(name=module.__name__)
         # Store initializer arguments.
         self.module = module
         self.aliases = aliases
 
-    def __getattr__(self, name):
+    def __getattr__(self, name:str) -> object:
         """
         Override module attribute lookup.
 
@@ -239,7 +237,7 @@ class DeprecationProxy(types.ModuleType):
         # Fall back to the default behavior.
         raise AttributeError(format("module '%s' has no attribute '%s'", self.module.__name__, name))
 
-    def resolve(self, target):
+    def resolve(self, target:str) -> object:
         """
         Look up the target of an alias.
 

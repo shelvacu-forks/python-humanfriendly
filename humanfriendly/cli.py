@@ -4,7 +4,7 @@
 # Last Change: March 1, 2020
 # URL: https://humanfriendly.readthedocs.io
 
-"""
+USAGE = """
 Usage: humanfriendly [OPTIONS]
 
 Human friendly input/output (text formatting) on the command
@@ -82,6 +82,10 @@ import getopt
 import subprocess
 import sys
 import shlex
+from typing import Sequence, TYPE_CHECKING, Never
+
+if TYPE_CHECKING:
+    from _typeshed import StrOrBytesPath
 
 # Modules included in our package.
 from humanfriendly import (
@@ -139,7 +143,7 @@ def main():
     actions = []
     delimiter = None
     should_format_table = False
-    binary = any(o in ('-b', '--binary') for o, v in options)
+    binary = any(o in ('-b', '--binary') for o, _ in options)
     for option, value in options:
         if option in ('-d', '--delimiter'):
             delimiter = value
@@ -162,18 +166,18 @@ def main():
         elif option == '--demo':
             actions.append(demonstrate_ansi_formatting)
         elif option in ('-h', '--help'):
-            usage(__doc__)
+            usage(USAGE)
             return
     if should_format_table:
         actions.append(functools.partial(print_formatted_table, delimiter))
     if not actions:
-        usage(__doc__)
+        usage(USAGE)
         return
     for partial in actions:
         partial()
 
 
-def run_command(command_line):
+def run_command(command_line:Sequence[str]) -> Never:
     """Run an external command and show a spinner while the command is running."""
     timer = Timer()
     spinner_label = "Waiting for command: %s" % " ".join(map(shlex.quote, command_line))
@@ -187,7 +191,7 @@ def run_command(command_line):
     sys.exit(process.returncode)
 
 
-def print_formatted_length(value):
+def print_formatted_length(value:str) -> None:
     """Print a human readable length."""
     if '.' in value:
         output(format_length(float(value)))
@@ -195,17 +199,17 @@ def print_formatted_length(value):
         output(format_length(int(value)))
 
 
-def print_formatted_number(value):
+def print_formatted_number(value:str) -> None:
     """Print large numbers in a human readable format."""
     output(format_number(float(value)))
 
 
-def print_formatted_size(value, binary):
+def print_formatted_size(value:str, binary:bool) -> None:
     """Print a human readable size."""
     output(format_size(int(value), binary=binary))
 
 
-def print_formatted_table(delimiter):
+def print_formatted_table(delimiter:str|None) -> None:
     """Read tabular data from standard input and print a table."""
     data = []
     for line in sys.stdin:
@@ -214,33 +218,33 @@ def print_formatted_table(delimiter):
     output(format_pretty_table(data))
 
 
-def print_formatted_timespan(value):
+def print_formatted_timespan(value:str) -> None:
     """Print a human readable timespan."""
     output(format_timespan(float(value)))
 
 
-def print_parsed_length(value):
+def print_parsed_length(value:str) -> None:
     """Parse a human readable length and print the number of metres."""
     output(parse_length(value))
 
 
-def print_parsed_size(value):
+def print_parsed_size(value:str) -> None:
     """Parse a human readable data size and print the number of bytes."""
     output(parse_size(value))
 
 
-def demonstrate_ansi_formatting():
+def demonstrate_ansi_formatting() -> None:
     """Demonstrate the use of ANSI escape sequences."""
     # First we demonstrate the supported text styles.
     output('%s', ansi_wrap('Text styles:', bold=True))
     styles = ['normal', 'bright']
     styles.extend(ANSI_TEXT_STYLES.keys())
     for style_name in sorted(styles):
-        options = dict(color=HIGHLIGHT_COLOR)
+        options:dict[str, object] = dict(color=HIGHLIGHT_COLOR)
         if style_name != 'normal':
             options[style_name] = True
         style_label = style_name.replace('_', ' ').capitalize()
-        output(' - %s', ansi_wrap(style_label, **options))
+        output(' - %s', ansi_wrap(style_label, **options)) # type: ignore
     # Now we demonstrate named foreground and background colors.
     for color_type, color_label in (('color', 'Foreground colors'),
                                     ('background', 'Background colors')):
@@ -268,7 +272,7 @@ def demonstrate_ansi_formatting():
     demonstrate_256_colors(232, 255, 'gray scale colors')
 
 
-def demonstrate_256_colors(i, j, group=None):
+def demonstrate_256_colors(i:int, j:int, group:str|None=None):
     """Demonstrate 256 color mode support."""
     # Generate the label.
     label = '256 color mode'

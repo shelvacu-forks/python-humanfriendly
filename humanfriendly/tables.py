@@ -26,6 +26,7 @@ Some generic notes about the table formatting functions in this module:
 # Standard library modules.
 import collections
 import re
+from typing import Sequence
 
 # Modules included in our package.
 from humanfriendly.compat import coerce_string
@@ -59,7 +60,7 @@ __all__ = (
 NUMERIC_DATA_PATTERN = re.compile(r'^\d+(\.\d+)?$')
 
 
-def format_smart_table(data, column_names):
+def format_smart_table(data:Sequence[Sequence[str]], column_names:Sequence[str]) -> str:
     """
     Render tabular data using the most appropriate representation.
 
@@ -101,7 +102,7 @@ def format_smart_table(data, column_names):
     return format_robust_table(data, column_names)
 
 
-def format_pretty_table(data, column_names=None, horizontal_bar='-', vertical_bar='|'):
+def format_pretty_table(data:Sequence[Sequence[str]], column_names:Sequence[str]|None=None, horizontal_bar:str='-', vertical_bar:str='|') -> str:
     """
     Render a table using characters like dashes and vertical bars to emulate borders.
 
@@ -191,7 +192,7 @@ def format_pretty_table(data, column_names=None, horizontal_bar='-', vertical_ba
     return u'\n'.join(lines)
 
 
-def format_robust_table(data, column_names):
+def format_robust_table(data:Sequence[Sequence[str]], column_names:Sequence[str]) -> str:
     """
     Render tabular data with one column per line (allowing columns with line breaks).
 
@@ -270,7 +271,7 @@ def format_robust_table(data, column_names):
     return delimiter.join(u"\n".join(b) for b in blocks).strip()
 
 
-def format_rst_table(data, column_names=None):
+def format_rst_table(data:Sequence[Sequence[str]], column_names:Sequence[str]|None=None) -> str:
     """
     Render a table in reStructuredText_ format.
 
@@ -327,7 +328,7 @@ def format_rst_table(data, column_names=None):
     return '\n'.join('  '.join(r) for r in data)
 
 
-def normalize_columns(row, expandtabs=False):
+def normalize_columns(row:Sequence[str], expandtabs:bool=False) -> list[str]:
     results = []
     for value in row:
         text = coerce_string(value)
@@ -337,5 +338,5 @@ def normalize_columns(row, expandtabs=False):
     return results
 
 
-def highlight_column_name(name):
+def highlight_column_name(name:str) -> str:
     return ansi_wrap(name, bold=True, color=HIGHLIGHT_COLOR)

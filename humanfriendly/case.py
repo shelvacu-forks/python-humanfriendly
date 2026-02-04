@@ -19,100 +19,16 @@ does it support Unicode normalization, hence the word "simple".
 
 # Standard library modules.
 import collections
-from collections.abc import Iterable, Mapping
-
-# Modules included in our package.
-from humanfriendly.compat import basestring, unicode
+from collections.abc import Iterable, MutableMapping
+from typing import Any, overload, TYPE_CHECKING, Final, Iterator
+if TYPE_CHECKING:
+    from _typeshed import SupportsKeysAndGetItem
 
 # Public identifiers that require documentation.
 __all__ = ("CaseInsensitiveDict", "CaseInsensitiveKey")
 
 
-class CaseInsensitiveDict(collections.OrderedDict):
-
-    """
-    Simple case insensitive dictionary implementation (that remembers insertion order).
-
-    This class works by overriding methods that deal with dictionary keys to
-    coerce string keys to :class:`CaseInsensitiveKey` objects before calling
-    down to the regular dictionary handling methods. While intended to be
-    complete this class has not been extensively tested yet.
-    """
-
-    def __init__(self, other=None, **kw):
-        """Initialize a :class:`CaseInsensitiveDict` object."""
-        # Initialize our superclass.
-        super(CaseInsensitiveDict, self).__init__()
-        # Handle the initializer arguments.
-        self.update(other, **kw)
-
-    def coerce_key(self, key):
-        """
-        Coerce string keys to :class:`CaseInsensitiveKey` objects.
-
-        :param key: The value to coerce (any type).
-        :returns: If `key` is a string then a :class:`CaseInsensitiveKey`
-                  object is returned, otherwise the value of `key` is
-                  returned unmodified.
-        """
-        if isinstance(key, basestring):
-            key = CaseInsensitiveKey(key)
-        return key
-
-    @classmethod
-    def fromkeys(cls, iterable, value=None):
-        """Create a case insensitive dictionary with keys from `iterable` and values set to `value`."""
-        return cls((k, value) for k in iterable)
-
-    def get(self, key, default=None):
-        """Get the value of an existing item."""
-        return super(CaseInsensitiveDict, self).get(self.coerce_key(key), default)
-
-    def pop(self, key, default=None):
-        """Remove an item from a case insensitive dictionary."""
-        return super(CaseInsensitiveDict, self).pop(self.coerce_key(key), default)
-
-    def setdefault(self, key, default=None):
-        """Get the value of an existing item or add a new item."""
-        return super(CaseInsensitiveDict, self).setdefault(self.coerce_key(key), default)
-
-    def update(self, other=None, **kw):
-        """Update a case insensitive dictionary with new items."""
-        if isinstance(other, Mapping):
-            # Copy the items from the given mapping.
-            for key, value in other.items():
-                self[key] = value
-        elif isinstance(other, Iterable):
-            # Copy the items from the given iterable.
-            for key, value in other:
-                self[key] = value
-        elif other is not None:
-            # Complain about unsupported values.
-            msg = "'%s' object is not iterable"
-            type_name = type(value).__name__
-            raise TypeError(msg % type_name)
-        # Copy the keyword arguments (if any).
-        for key, value in kw.items():
-            self[key] = value
-
-    def __contains__(self, key):
-        """Check if a case insensitive dictionary contains the given key."""
-        return super(CaseInsensitiveDict, self).__contains__(self.coerce_key(key))
-
-    def __delitem__(self, key):
-        """Delete an item in a case insensitive dictionary."""
-        return super(CaseInsensitiveDict, self).__delitem__(self.coerce_key(key))
-
-    def __getitem__(self, key):
-        """Get the value of an item in a case insensitive dictionary."""
-        return super(CaseInsensitiveDict, self).__getitem__(self.coerce_key(key))
-
-    def __setitem__(self, key, value):
-        """Set the value of an item in a case insensitive dictionary."""
-        return super(CaseInsensitiveDict, self).__setitem__(self.coerce_key(key), value)
-
-
-class CaseInsensitiveKey(unicode):
+class CaseInsensitiveKey[T: (str, bytes)]():
 
     """
     Simple case insensitive dictionary key implementation.
@@ -125,27 +41,88 @@ class CaseInsensitiveKey(unicode):
     package instead.
     """
 
-    def __new__(cls, value):
+    wrapped:Final[T]
+    normalized:Final[T]
+
+    def __init__(self, value:T) -> None:
         """Create a :class:`CaseInsensitiveKey` object."""
-        # Delegate string object creation to our superclass.
-        obj = unicode.__new__(cls, value)
-        # Store the lowercased string and its hash value.
-        normalized = obj.lower()
-        obj._normalized = normalized
-        obj._hash_value = hash(normalized)
-        return obj
+        self.wrapped = value
+        self.normalized = value.lower()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """Get the hash value of the lowercased string."""
-        return self._hash_value
+        return self.normalized.__hash__()
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         """Compare two strings as lowercase."""
         if isinstance(other, CaseInsensitiveKey):
             # Fast path (and the most common case): Comparison with same type.
-            return self._normalized == other._normalized
-        elif isinstance(other, unicode):
-            # Slow path: Comparison with strings that need lowercasing.
-            return self._normalized == other.lower()
+            return self.normalized == other.normalized
         else:
-            return NotImplemented
+            return False
+
+class CaseInsensitiveDict[KT: (str, bytes), VT](MutableMapping[KT, VT]):
+    wrapped:collections.OrderedDict[CaseInsensitiveKey[KT], VT]
+
+    @classmethod
+    @overload
+    def fromkeys[T: (str, bytes)](cls, iterable: Iterable[T], value: None = None, /) -> "CaseInsensitiveDict[T, Any]": ...
+    @classmethod
+    @overload
+    def fromkeys[T: (str, bytes), V](cls, iterable: Iterable[T], value: V, /) -> "CaseInsensitiveDict[T, V]": ...
+    @classmethod
+    def fromkeys[T: (str, bytes)](cls, iterable: Iterable[T], value: Any = None, /) -> "CaseInsensitiveDict[T, Any]":
+        res = CaseInsensitiveDict()
+        for key in iterable:
+            res[key] = value
+        return res
+
+    @staticmethod
+    @overload
+    def map_key(k:KT) -> CaseInsensitiveKey[KT]: ...
+    @staticmethod
+    @overload
+    def map_key(k:Any) -> Any: ...
+    @staticmethod
+    def map_key(k:Any) -> Any:
+        if isinstance(k, str):
+            return CaseInsensitiveKey(k)
+        elif isinstance(k, bytes):
+            return CaseInsensitiveKey(k)
+        else:
+            return k
+
+    @staticmethod
+    def map_key_typed(k: KT) -> CaseInsensitiveKey[KT]:
+        return CaseInsensitiveKey(k)
+
+    @staticmethod
+    def unmap_key(k:CaseInsensitiveKey[KT]) -> KT:
+        return k.wrapped
+
+    def __init__(self, other:"SupportsKeysAndGetItem[KT, VT]|Iterable[tuple[KT, VT]]"={}, /, **kw: VT):
+        """Initialize a :class:`CaseInsensitiveDict` object."""
+        super().__init__()
+        self.update(other, **kw)
+
+    def popitem(self, last: bool = True) -> tuple[KT, VT]:
+        key, val = self.wrapped.popitem(last)
+        return (self.unmap_key(key), val)
+
+    def move_to_end(self, key: KT, last: bool = True) -> None:
+        self.wrapped.move_to_end(self.map_key_typed(key), last)
+
+    def __getitem__(self, key: KT) -> VT:
+        return self.wrapped[self.map_key_typed(key)]
+
+    def __setitem__(self, key: KT, val: VT) -> None:
+        self.wrapped[self.map_key_typed(key)] = val
+
+    def __delitem__(self, key: KT) -> None:
+        del self.wrapped[self.map_key_typed(key)]
+
+    def __len__(self) -> int:
+        return len(self.wrapped)
+
+    def __iter__(self) -> Iterator[KT]:
+        return map(self.unmap_key, self.wrapped)

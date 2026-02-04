@@ -15,6 +15,11 @@ import os
 import os.path
 import re
 import time
+import typing
+from typing import Any, NamedTuple, Literal, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from _typeshed import ConvertibleToFloat
 
 # Modules included in our package.
 from humanfriendly.compat import is_string, monotonic
@@ -51,44 +56,96 @@ __all__ = (
 )
 
 # Semi-standard module versioning.
-__version__ = '10.0'
+__version__ = '11.0'
+
+ByteDecimalUnit = Literal[
+        'KB',
+        'MB',
+        'GB',
+        'TB',
+        'PB',
+        'EB',
+        'ZB',
+        'YB',
+]
+ByteBinaryUnit = Literal[
+        'KiB',
+        'MiB',
+        'GiB',
+        'TiB',
+        'PiB',
+        'EiB',
+        'ZiB',
+        'YiB',
+]
+ByteSingleUnit = Literal[
+        "byte",
+        "bytes",
+        "B",
+]
+ByteUnit = Literal[ByteSingleUnit, ByteBinaryUnit, ByteDecimalUnit]
+
 
 # Named tuples to define units of size.
-SizeUnit = collections.namedtuple('SizeUnit', 'divider, symbol, name')
-CombinedUnit = collections.namedtuple('CombinedUnit', 'decimal, binary')
+# SizeUnit = collections.namedtuple('SizeUnit', 'divider, symbol, name')
+class SizeUnit[T:ByteUnit=ByteUnit](NamedTuple):
+    divider:int
+    symbol:T
+    name:str
+
+# CombinedUnit = collections.namedtuple('CombinedUnit', 'decimal, binary')
+class CombinedUnit(NamedTuple):
+    decimal:SizeUnit[ByteDecimalUnit]
+    binary:SizeUnit[ByteBinaryUnit]
 
 # Common disk size units in binary (base-2) and decimal (base-10) multiples.
-disk_size_units = (
-    CombinedUnit(SizeUnit(1000**1, 'KB', 'kilobyte'), SizeUnit(1024**1, 'KiB', 'kibibyte')),
-    CombinedUnit(SizeUnit(1000**2, 'MB', 'megabyte'), SizeUnit(1024**2, 'MiB', 'mebibyte')),
-    CombinedUnit(SizeUnit(1000**3, 'GB', 'gigabyte'), SizeUnit(1024**3, 'GiB', 'gibibyte')),
-    CombinedUnit(SizeUnit(1000**4, 'TB', 'terabyte'), SizeUnit(1024**4, 'TiB', 'tebibyte')),
-    CombinedUnit(SizeUnit(1000**5, 'PB', 'petabyte'), SizeUnit(1024**5, 'PiB', 'pebibyte')),
-    CombinedUnit(SizeUnit(1000**6, 'EB', 'exabyte'), SizeUnit(1024**6, 'EiB', 'exbibyte')),
+disk_size_units:tuple[CombinedUnit, ...] = (
+    CombinedUnit(SizeUnit(1000**1, 'KB', 'kilobyte' ), SizeUnit(1024**1, 'KiB', 'kibibyte')),
+    CombinedUnit(SizeUnit(1000**2, 'MB', 'megabyte' ), SizeUnit(1024**2, 'MiB', 'mebibyte')),
+    CombinedUnit(SizeUnit(1000**3, 'GB', 'gigabyte' ), SizeUnit(1024**3, 'GiB', 'gibibyte')),
+    CombinedUnit(SizeUnit(1000**4, 'TB', 'terabyte' ), SizeUnit(1024**4, 'TiB', 'tebibyte')),
+    CombinedUnit(SizeUnit(1000**5, 'PB', 'petabyte' ), SizeUnit(1024**5, 'PiB', 'pebibyte')),
+    CombinedUnit(SizeUnit(1000**6, 'EB', 'exabyte'  ), SizeUnit(1024**6, 'EiB', 'exbibyte')),
     CombinedUnit(SizeUnit(1000**7, 'ZB', 'zettabyte'), SizeUnit(1024**7, 'ZiB', 'zebibyte')),
     CombinedUnit(SizeUnit(1000**8, 'YB', 'yottabyte'), SizeUnit(1024**8, 'YiB', 'yobibyte')),
 )
 
+class LengthUnit(NamedTuple):
+    prefix:str
+    divider:int|float
+    singular:str
+    plural:str
+
 # Common length size units, used for formatting and parsing.
-length_size_units = (dict(prefix='nm', divider=1e-09, singular='nm', plural='nm'),
-                     dict(prefix='mm', divider=1e-03, singular='mm', plural='mm'),
-                     dict(prefix='cm', divider=1e-02, singular='cm', plural='cm'),
-                     dict(prefix='m', divider=1, singular='metre', plural='metres'),
-                     dict(prefix='km', divider=1000, singular='km', plural='km'))
+length_size_units:tuple[LengthUnit, ...] = (
+        LengthUnit(prefix='nm', divider=1e-09, singular='nm', plural='nm'),
+        LengthUnit(prefix='mm', divider=1e-03, singular='mm', plural='mm'),
+        LengthUnit(prefix='cm', divider=1e-02, singular='cm', plural='cm'),
+        LengthUnit(prefix='m', divider=1, singular='metre', plural='metres'),
+        LengthUnit(prefix='km', divider=1000, singular='km', plural='km'),
+)
+
+class TimeUnit(NamedTuple):
+    divider:int|float
+    singular:str
+    plural:str
+    abbreviations:list[str]
 
 # Common time units, used for formatting of time spans.
-time_units = (dict(divider=1e-9, singular='nanosecond', plural='nanoseconds', abbreviations=['ns']),
-              dict(divider=1e-6, singular='microsecond', plural='microseconds', abbreviations=['us']),
-              dict(divider=1e-3, singular='millisecond', plural='milliseconds', abbreviations=['ms']),
-              dict(divider=1, singular='second', plural='seconds', abbreviations=['s', 'sec', 'secs']),
-              dict(divider=60, singular='minute', plural='minutes', abbreviations=['m', 'min', 'mins']),
-              dict(divider=60 * 60, singular='hour', plural='hours', abbreviations=['h']),
-              dict(divider=60 * 60 * 24, singular='day', plural='days', abbreviations=['d']),
-              dict(divider=60 * 60 * 24 * 7, singular='week', plural='weeks', abbreviations=['w']),
-              dict(divider=60 * 60 * 24 * 7 * 52, singular='year', plural='years', abbreviations=['y']))
+time_units:tuple[TimeUnit, ...] = (
+        TimeUnit(divider=1e-9, singular='nanosecond', plural='nanoseconds', abbreviations=['ns']),
+        TimeUnit(divider=1e-6, singular='microsecond', plural='microseconds', abbreviations=['us']),
+        TimeUnit(divider=1e-3, singular='millisecond', plural='milliseconds', abbreviations=['ms']),
+        TimeUnit(divider=1, singular='second', plural='seconds', abbreviations=['s', 'sec', 'secs']),
+        TimeUnit(divider=60, singular='minute', plural='minutes', abbreviations=['m', 'min', 'mins']),
+        TimeUnit(divider=60 * 60, singular='hour', plural='hours', abbreviations=['h']),
+        TimeUnit(divider=60 * 60 * 24, singular='day', plural='days', abbreviations=['d']),
+        TimeUnit(divider=60 * 60 * 24 * 7, singular='week', plural='weeks', abbreviations=['w']),
+        TimeUnit(divider=60 * 60 * 24 * 7 * 52, singular='year', plural='years', abbreviations=['y']),
+)
 
 
-def coerce_boolean(value):
+def coerce_boolean(value:Any) -> bool:
     """
     Coerce any value to a boolean.
 
@@ -103,7 +160,7 @@ def coerce_boolean(value):
     :raises: :exc:`exceptions.ValueError` when the value is a string but
              cannot be coerced with certainty.
     """
-    if is_string(value):
+    if isinstance(value, str):
         normalized = value.strip().lower()
         if normalized in ('1', 'yes', 'true', 'on'):
             return True
@@ -116,7 +173,7 @@ def coerce_boolean(value):
         return bool(value)
 
 
-def coerce_pattern(value, flags=0):
+def coerce_pattern(value:str|re.Pattern, flags:int=0) -> re.Pattern:
     """
     Coerce strings to compiled regular expressions.
 
@@ -127,18 +184,16 @@ def coerce_pattern(value, flags=0):
     :raises: :exc:`~exceptions.ValueError` when `value` isn't a string
              and also isn't a compiled regular expression.
     """
-    if is_string(value):
+    if isinstance(value, str):
         value = re.compile(value, flags)
-    else:
-        empty_pattern = re.compile('')
-        pattern_type = type(empty_pattern)
-        if not isinstance(value, pattern_type):
-            msg = "Failed to coerce value to compiled regular expression! (%r)"
-            raise ValueError(format(msg, value))
+    elif not isinstance(value, re.Pattern):
+        msg = "Failed to coerce value to compiled regular expression! (%r)"
+        raise ValueError(format(msg, value))
     return value
 
+CoercibleToSeconds = int|float|datetime.timedelta
 
-def coerce_seconds(value):
+def coerce_seconds(value:CoercibleToSeconds) -> int|float:
     """
     Coerce a value to the number of seconds.
 
@@ -157,7 +212,7 @@ def coerce_seconds(value):
     return value
 
 
-def format_size(num_bytes, keep_width=False, binary=False, force_unit=None):
+def format_size(num_bytes:float, keep_width:bool=False, binary:bool=False, force_unit:ByteUnit|None=None):
     """
     Format a byte count as a human readable file size.
 
@@ -217,10 +272,10 @@ def format_size(num_bytes, keep_width=False, binary=False, force_unit=None):
                     disk_size_units[force_tuple_index].decimal.symbol,
                     disk_size_units[force_tuple_index].decimal.symbol)
         else:
-            if force_unit == 'bytes':
+            if force_unit in typing.get_args(ByteSingleUnit):
                 return pluralize(
                     round_number(
-                        float(num_bytes),
+                        num_bytes,
                         keep_width=keep_width),
                     'byte')
             else:
@@ -237,7 +292,7 @@ def format_size(num_bytes, keep_width=False, binary=False, force_unit=None):
     return pluralize(num_bytes, 'byte')
 
 
-def parse_size(size, binary=False):
+def parse_size(size:str, binary:bool=False) -> int:
     """
     Parse a human readable data size and return the number of bytes.
 
@@ -272,9 +327,9 @@ def parse_size(size, binary=False):
     1610612736
     """
     tokens = tokenize(size)
-    if tokens and isinstance(tokens[0], numbers.Number):
+    if tokens and isinstance(tokens[0], (float, int)):
         # Get the normalized unit (if any) from the tokenized input.
-        normalized_unit = tokens[1].lower() if len(tokens) == 2 and is_string(tokens[1]) else ''
+        normalized_unit = tokens[1].lower() if len(tokens) == 2 and isinstance(tokens[1], str) else ''
         # If the input contains only a number, it's assumed to be the number of
         # bytes. The second token can also explicitly reference the unit bytes.
         if len(tokens) == 1 or normalized_unit.startswith('b'):
@@ -301,7 +356,7 @@ def parse_size(size, binary=False):
     raise InvalidSize(format(msg, size, tokens))
 
 
-def format_length(num_metres, keep_width=False):
+def format_length(num_metres:int|float, keep_width:bool=False) -> str:
     """
     Format a metre count as a human readable length.
 
@@ -327,13 +382,13 @@ def format_length(num_metres, keep_width=False):
     '4 mm'
     """
     for unit in reversed(length_size_units):
-        if num_metres >= unit['divider']:
-            number = round_number(float(num_metres) / unit['divider'], keep_width=keep_width)
-            return pluralize(number, unit['singular'], unit['plural'])
+        if num_metres >= unit.divider:
+            number = round_number(float(num_metres) / unit.divider, keep_width=keep_width)
+            return pluralize(number, unit.singular, unit.plural)
     return pluralize(num_metres, 'metre')
 
 
-def parse_length(length):
+def parse_length(length:str) -> float:
     """
     Parse a human readable length and return the number of metres.
 
@@ -354,23 +409,23 @@ def parse_length(length):
     0.153
     """
     tokens = tokenize(length)
-    if tokens and isinstance(tokens[0], numbers.Number):
+    if tokens and isinstance(tokens[0], (float, int)):
         # If the input contains only a number, it's assumed to be the number of metres.
         if len(tokens) == 1:
             return tokens[0]
         # Otherwise we expect to find two tokens: A number and a unit.
-        if len(tokens) == 2 and is_string(tokens[1]):
+        if len(tokens) == 2 and isinstance(tokens[1], str):
             normalized_unit = tokens[1].lower()
             # Try to match the first letter of the unit.
             for unit in length_size_units:
-                if normalized_unit.startswith(unit['prefix']):
-                    return tokens[0] * unit['divider']
+                if normalized_unit.startswith(unit.prefix):
+                    return tokens[0] * unit.divider
     # We failed to parse the length specification.
     msg = "Failed to parse length! (input %r was tokenized as %r)"
     raise InvalidLength(format(msg, length, tokens))
 
 
-def format_number(number, num_decimals=2):
+def format_number(number:int|float, num_decimals:int=2) -> str:
     """
     Format a number as a string including thousands separators.
 
@@ -410,7 +465,7 @@ def format_number(number, num_decimals=2):
     return formatted_number
 
 
-def round_number(count, keep_width=False):
+def round_number(count:"ConvertibleToFloat", keep_width:bool=False) -> str:
     """
     Round a floating point number to two decimal places in a human friendly format.
 
@@ -441,7 +496,7 @@ def round_number(count, keep_width=False):
     return text
 
 
-def format_timespan(num_seconds, detailed=False, max_units=3):
+def format_timespan(num_seconds:CoercibleToSeconds, detailed:bool=False, max_units:int=3) -> str:
     """
     Format a timespan in seconds as a human readable string.
 
@@ -470,20 +525,20 @@ def format_timespan(num_seconds, detailed=False, max_units=3):
     >>> format_timespan(week * 52 + day * 2 + hour * 3)
     '1 year, 2 days and 3 hours'
     """
-    num_seconds = coerce_seconds(num_seconds)
-    if num_seconds < 60 and not detailed:
+    num_seconds_norm = coerce_seconds(num_seconds)
+    if num_seconds_norm < 60 and not detailed:
         # Fast path.
-        return pluralize(round_number(num_seconds), 'second')
+        return pluralize(round_number(num_seconds_norm), 'second')
     else:
         # Slow path.
         result = []
-        num_seconds = decimal.Decimal(str(num_seconds))
+        num_seconds_dec = decimal.Decimal(str(num_seconds_norm))
         relevant_units = list(reversed(time_units[0 if detailed else 3:]))
         for unit in relevant_units:
             # Extract the unit count from the remaining time.
-            divider = decimal.Decimal(str(unit['divider']))
-            count = num_seconds / divider
-            num_seconds %= divider
+            divider = decimal.Decimal(str(unit.divider))
+            count = num_seconds_dec / divider
+            num_seconds_dec %= divider
             # Round the unit count appropriately.
             if unit != relevant_units[-1]:
                 # Integer rounding for all but the smallest unit.
@@ -493,7 +548,7 @@ def format_timespan(num_seconds, detailed=False, max_units=3):
                 count = round_number(count)
             # Only include relevant units in the result.
             if count not in (0, '0'):
-                result.append(pluralize(count, unit['singular'], unit['plural']))
+                result.append(pluralize(count, unit.singular, unit.plural))
         if len(result) == 1:
             # A single count/unit combination.
             return result[0]
@@ -505,7 +560,7 @@ def format_timespan(num_seconds, detailed=False, max_units=3):
             return concatenate(result)
 
 
-def parse_timespan(timespan):
+def parse_timespan(timespan:str) -> float:
     """
     Parse a "human friendly" timespan into the number of seconds.
 
@@ -550,19 +605,26 @@ def parse_timespan(timespan):
         if len(tokens) == 1:
             return float(tokens[0])
         # Otherwise we expect to find two tokens: A number and a unit.
-        if len(tokens) == 2 and is_string(tokens[1]):
+        if len(tokens) == 2 and isinstance(tokens[1], str):
             normalized_unit = tokens[1].lower()
             for unit in time_units:
-                if (normalized_unit == unit['singular'] or
-                        normalized_unit == unit['plural'] or
-                        normalized_unit in unit['abbreviations']):
-                    return float(tokens[0]) * unit['divider']
+                if (normalized_unit == unit.singular or
+                        normalized_unit == unit.plural or
+                        normalized_unit in unit.abbreviations):
+                    return float(tokens[0]) * unit.divider
     # We failed to parse the timespan specification.
     msg = "Failed to parse timespan! (input %r was tokenized as %r)"
     raise InvalidTimespan(format(msg, timespan, tokens))
 
+class ParsedDate(NamedTuple):
+    year:int
+    month:int
+    day:int
+    hour:int
+    minute:int
+    second:int
 
-def parse_date(datestring):
+def parse_date(datestring:str) -> ParsedDate:
     """
     Parse a date/time string into a tuple of integers.
 
@@ -624,16 +686,16 @@ def parse_date(datestring):
         if len(tokens) >= 2:
             date_parts = list(map(int, tokens[0].split('-'))) + [1, 1]
             time_parts = list(map(int, tokens[1].split(':'))) + [0, 0, 0]
-            return tuple(date_parts[0:3] + time_parts[0:3])
+            return ParsedDate(*date_parts[0:3], *time_parts[0:3])
         else:
             year, month, day = (list(map(int, datestring.split('-'))) + [1, 1])[0:3]
-            return (year, month, day, 0, 0, 0)
+            return ParsedDate(year, month, day, 0, 0, 0)
     except Exception:
         msg = "Invalid date! (expected 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS' but got: %r)"
         raise InvalidDate(format(msg, datestring))
 
 
-def format_path(pathname):
+def format_path(pathname:str) -> str:
     """
     Shorten a pathname to make it more human friendly.
 
@@ -665,7 +727,7 @@ def format_path(pathname):
     return pathname
 
 
-def parse_path(pathname):
+def parse_path(pathname:str) -> str:
     """
     Convert a human friendly pathname to an absolute pathname.
 
@@ -679,13 +741,18 @@ def parse_path(pathname):
     return os.path.abspath(os.path.expanduser(os.path.expandvars(pathname)))
 
 
-class Timer(object):
+class Timer:
 
     """
     Easy to use timer to keep track of long during operations.
     """
 
-    def __init__(self, start_time=None, resumable=False):
+    monotonic:bool
+    resumable:bool
+    start_time:float
+    total_time:float
+
+    def __init__(self, start_time:float|None=None, resumable:bool=False):
         """
         Remember the time when the :class:`Timer` was created.
 
@@ -695,11 +762,11 @@ class Timer(object):
         When `start_time` is given :class:`Timer` uses :func:`time.time()` as a
         clock source, otherwise it uses :func:`humanfriendly.compat.monotonic()`.
         """
+        self.total_time = 0.0
         if resumable:
             self.monotonic = True
             self.resumable = True
             self.start_time = 0.0
-            self.total_time = 0.0
         elif start_time:
             self.monotonic = False
             self.resumable = False
@@ -733,7 +800,7 @@ class Timer(object):
             self.total_time += monotonic() - self.start_time
             self.start_time = 0.0
 
-    def sleep(self, seconds):
+    def sleep(self, seconds:int|float) -> None:
         """
         Easy to use rate limiting of repeating actions.
 
@@ -760,7 +827,7 @@ class Timer(object):
         time.sleep(max(0, seconds - self.elapsed_time))
 
     @property
-    def elapsed_time(self):
+    def elapsed_time(self) -> float:
         """
         Get the number of seconds counted so far.
         """
@@ -773,11 +840,11 @@ class Timer(object):
         return elapsed_time
 
     @property
-    def rounded(self):
+    def rounded(self) -> str:
         """Human readable timespan rounded to seconds (a string)."""
         return format_timespan(round(self.elapsed_time))
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Show the elapsed time since the :class:`Timer` was created."""
         return format_timespan(self.elapsed_time)
 

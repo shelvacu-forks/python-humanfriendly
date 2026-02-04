@@ -29,21 +29,24 @@ import platform
 import re
 import subprocess
 import sys
+import io
+from collections.abc import Callable
+from typing import TYPE_CHECKING, TypeVar, TypeVarTuple, ParamSpec, Concatenate, Any, TypeAliasType, reveal_type, Unpack, TextIO, BinaryIO
+
+if TYPE_CHECKING:
+    import _typeshed
 
 # The `fcntl' module is platform specific so importing it may give an error. We
 # hide this implementation detail from callers by handling the import error and
 # setting a flag instead.
-try:
+if sys.platform != "win32":
     import fcntl
     import termios
     import struct
-    HAVE_IOCTL = True
-except ImportError:
-    HAVE_IOCTL = False
 
 # Modules included in our package.
 from humanfriendly.compat import coerce_string, is_unicode, on_windows, which
-from humanfriendly.decorators import cached
+from humanfriendly.decorators import cached, args_from0, args_from1
 from humanfriendly.deprecation import define_aliases
 from humanfriendly.text import concatenate, format
 from humanfriendly.usage import format_usage
@@ -145,8 +148,7 @@ message of the ``humanfriendly`` program). If the environment variable
 :data:`HIGHLIGHT_COLOR`.
 """
 
-
-def ansi_strip(text, readline_hints=True):
+def ansi_strip(text:str, readline_hints:bool=True) -> str:
     """
     Strip ANSI escape sequences from the given string.
 
@@ -163,7 +165,21 @@ def ansi_strip(text, readline_hints=True):
     return text
 
 
-def ansi_style(**kw):
+# def ansi_style(**kw) -> str:
+def ansi_style(
+        *,
+        bold:bool=False,
+        faint:bool=False,
+        italic:bool=False,
+        underline:bool=False,
+        inverse:bool=False,
+        strike_through:bool=False,
+
+        color:tuple[int, int, int] | list[int] | int | str | None=None,
+        background:tuple[int, int, int] | list[int] | int | str | None=None,
+        bright:bool=False,
+        readline_hints:bool=False,
+) -> str:
     """
     Generate ANSI escape sequences for the given color and/or style(s).
 
@@ -222,22 +238,35 @@ def ansi_style(**kw):
     .. _release 4.14: http://humanfriendly.readthedocs.io/en/latest/changelog.html#release-4-14-2018-07-13
     """
     # Start with sequences that change text styles.
-    sequences = [ANSI_TEXT_STYLES[k] for k, v in kw.items() if k in ANSI_TEXT_STYLES and v]
+    # sequences = [ANSI_TEXT_STYLES[k] for k, v in kw.items() if k in ANSI_TEXT_STYLES and v]
+    sequences = []
+    if bold:
+        sequences.append(ANSI_TEXT_STYLES["bold"])
+    if faint:
+        sequences.append(ANSI_TEXT_STYLES["faint"])
+    if italic:
+        sequences.append(ANSI_TEXT_STYLES["italic"])
+    if underline:
+        sequences.append(ANSI_TEXT_STYLES["underline"])
+    if inverse:
+        sequences.append(ANSI_TEXT_STYLES["inverse"])
+    if strike_through:
+        sequences.append(ANSI_TEXT_STYLES["strike_through"])
     # Append the color code (if any).
     for color_type in 'color', 'background':
-        color_value = kw.get(color_type)
+        color_value = background if color_type == 'background' else color
         if isinstance(color_value, (tuple, list)):
             if len(color_value) != 3:
                 msg = "Invalid color value %r! (expected tuple or list with three numbers)"
                 raise ValueError(msg % color_value)
             sequences.append(48 if color_type == 'background' else 38)
             sequences.append(2)
-            sequences.extend(map(int, color_value))
-        elif isinstance(color_value, numbers.Number):
+            sequences.extend(color_value)
+        elif isinstance(color_value, int):
             # Numeric values are assumed to be 256 color codes.
             sequences.extend((
                 48 if color_type == 'background' else 38,
-                5, int(color_value)
+                5, color_value
             ))
         elif color_value:
             # Other values are assumed to be strings containing one of the known color names.
@@ -247,20 +276,20 @@ def ansi_style(**kw):
             # Pick the right offset for foreground versus background
             # colors and regular intensity versus bright colors.
             offset = (
-                (100 if kw.get('bright') else 40)
+                (100 if bright else 40)
                 if color_type == 'background'
-                else (90 if kw.get('bright') else 30)
+                else (90 if bright else 30)
             )
             # Combine the offset and color code into a single integer.
             sequences.append(offset + ANSI_COLOR_CODES[color_value])
     if sequences:
         encoded = ANSI_CSI + ';'.join(map(str, sequences)) + ANSI_SGR
-        return readline_wrap(encoded) if kw.get('readline_hints') else encoded
+        return readline_wrap(encoded) if readline_hints else encoded
     else:
         return ''
 
 
-def ansi_width(text):
+def ansi_width(text:str) -> int:
     """
     Calculate the effective width of the given text (ignoring ANSI escape sequences).
 
@@ -274,7 +303,8 @@ def ansi_width(text):
     return len(ansi_strip(text))
 
 
-def ansi_wrap(text, **kw):
+@args_from1(ansi_style)
+def ansi_wrap(text:str, /, **kw) -> str:
     """
     Wrap text in ANSI escape sequences for the given color and/or style(s).
 
@@ -300,7 +330,8 @@ def ansi_wrap(text, **kw):
         return text
 
 
-def auto_encode(stream, text, *args, **kw):
+@args_from1(format)
+def auto_encode(stream:TextIO, text:str, *args, **kw) -> None:
     """
     Reliably write Unicode strings to the terminal.
 
@@ -311,21 +342,13 @@ def auto_encode(stream, text, *args, **kw):
     :param kw: Refer to :func:`~humanfriendly.text.format()`.
 
     Renders the text using :func:`~humanfriendly.text.format()` and writes it
-    to the given stream. If an :exc:`~exceptions.UnicodeEncodeError` is
-    encountered in doing so, the text is encoded using :data:`DEFAULT_ENCODING`
-    and the write is retried. The reasoning behind this rather blunt approach
-    is that it's preferable to get output on the command line in the wrong
-    encoding then to have the Python program blow up with a
-    :exc:`~exceptions.UnicodeEncodeError` exception.
+    to the given stream.
     """
     text = format(text, *args, **kw)
-    try:
-        stream.write(text)
-    except UnicodeEncodeError:
-        stream.write(codecs.encode(text, DEFAULT_ENCODING))
+    stream.write(text)
 
 
-def clean_terminal_output(text):
+def clean_terminal_output(text:str) -> list[str]:
     """
     Clean up the terminal output of a command.
 
@@ -399,7 +422,7 @@ def clean_terminal_output(text):
     return cleaned_lines
 
 
-def connected_to_terminal(stream=None):
+def connected_to_terminal(stream:Any=sys.stdout) -> bool:
     """
     Check if a stream is connected to a terminal.
 
@@ -410,15 +433,17 @@ def connected_to_terminal(stream=None):
 
     See also :func:`terminal_supports_colors()`.
     """
-    stream = sys.stdout if stream is None else stream
-    try:
-        return stream.isatty()
-    except Exception:
+    if hasattr(stream, 'isatty') and callable(stream.isatty):
+        res = stream.isatty()
+        if not isinstance(res, bool):
+            raise TypeError("passed stream object has isatty() method that did not return a bool")
+        return res
+    else:
         return False
 
 
 @cached
-def enable_ansi_support():
+def enable_ansi_support() -> bool:
     """
     Try to enable support for ANSI escape sequences (required on Windows).
 
@@ -451,7 +476,7 @@ def enable_ansi_support():
     that this function is only executed once, but its return value remains
     available on later calls.
     """
-    if have_windows_native_ansi_support():
+    if sys.platform == "win32" and have_windows_native_ansi_support():
         import ctypes
         ctypes.windll.kernel32.SetConsoleMode(ctypes.windll.kernel32.GetStdHandle(-11), 7)
         ctypes.windll.kernel32.SetConsoleMode(ctypes.windll.kernel32.GetStdHandle(-12), 7)
@@ -469,7 +494,7 @@ def enable_ansi_support():
         return connected_to_terminal()
 
 
-def find_terminal_size():
+def find_terminal_size() -> tuple[int, int]:
     """
     Determine the number of lines and columns visible in the terminal.
 
@@ -517,7 +542,7 @@ def find_terminal_size():
     return DEFAULT_LINES, DEFAULT_COLUMNS
 
 
-def find_terminal_size_using_ioctl(stream):
+def find_terminal_size_using_ioctl(stream:"_typeshed.FileDescriptorLike") -> tuple[int, int]:
     """
     Find the terminal size using :func:`fcntl.ioctl()`.
 
@@ -529,13 +554,14 @@ def find_terminal_size_using_ioctl(stream):
 
     Based on an `implementation found on StackOverflow <http://stackoverflow.com/a/3010495/788200>`_.
     """
-    if not HAVE_IOCTL:
+    if sys.platform == "win32":
         raise NotImplementedError("It looks like the `fcntl' module is not available!")
-    h, w, hp, wp = struct.unpack('HHHH', fcntl.ioctl(stream, termios.TIOCGWINSZ, struct.pack('HHHH', 0, 0, 0, 0)))
-    return h, w
+    else:
+        h, w, hp, wp = struct.unpack('HHHH', fcntl.ioctl(stream, termios.TIOCGWINSZ, struct.pack('HHHH', 0, 0, 0, 0)))
+        return h, w
 
 
-def find_terminal_size_using_stty():
+def find_terminal_size_using_stty() -> tuple[int, int]:
     """
     Find the terminal size using the external command ``stty size``.
 
@@ -547,14 +573,14 @@ def find_terminal_size_using_stty():
     stty = subprocess.Popen(['stty', 'size'],
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
-    stdout, stderr = stty.communicate()
+    stdout, _stderr = stty.communicate()
     tokens = stdout.split()
     if len(tokens) != 2:
         raise Exception("Invalid output from `stty size'!")
-    return tuple(map(int, tokens))
+    return (int(tokens[0]), int(tokens[1]))
 
 
-def get_pager_command(text=None):
+def get_pager_command(text:str|None=None) -> list[str]:
     """
     Get the command to show a text on the terminal using a pager.
 
@@ -595,7 +621,7 @@ def get_pager_command(text=None):
 
 
 @cached
-def have_windows_native_ansi_support():
+def have_windows_native_ansi_support() -> bool:
     """
     Check if we're running on a Windows 10 release with native support for ANSI escape sequences.
 
@@ -606,19 +632,13 @@ def have_windows_native_ansi_support():
     the answer doesn't change in the lifetime of a computer process.
     """
     if on_windows():
-        try:
-            # I can't be 100% sure this will never break and I'm not in a
-            # position to test it thoroughly either, so I decided that paying
-            # the price of one additional try / except statement is worth the
-            # additional peace of mind :-).
-            components = tuple(int(c) for c in platform.version().split('.'))
-            return components >= (10, 0, 14393)
-        except Exception:
-            pass
+        components = tuple(int(c) for c in platform.version().split('.'))
+        return components >= (10, 0, 14393)
     return False
 
 
-def message(text, *args, **kw):
+@args_from0(format)
+def message(text, *args, **kw) -> None:
     """
     Print a formatted message to the standard error stream.
 
@@ -632,7 +652,7 @@ def message(text, *args, **kw):
     auto_encode(sys.stderr, coerce_string(text) + '\n', *args, **kw)
 
 
-def output(text, *args, **kw):
+def output(text:object, *args:object, **kw:object) -> None:
     """
     Print a formatted message to the standard output stream.
 
@@ -643,10 +663,10 @@ def output(text, *args, **kw):
     the resulting string (followed by a newline) to :data:`sys.stdout` using
     :func:`auto_encode()`.
     """
-    auto_encode(sys.stdout, coerce_string(text) + '\n', *args, **kw)
+    auto_encode(sys.stdout, str(text) + '\n', *args, **kw)
 
 
-def readline_strip(expr):
+def readline_strip(expr:str) -> str:
     """
     Remove `readline hints`_ from a string.
 
@@ -656,7 +676,7 @@ def readline_strip(expr):
     return expr.replace('\001', '').replace('\002', '')
 
 
-def readline_wrap(expr):
+def readline_wrap(expr:str) -> str:
     """
     Wrap an ANSI escape sequence in `readline hints`_.
 
@@ -668,7 +688,7 @@ def readline_wrap(expr):
     return '\001' + expr + '\002'
 
 
-def show_pager(formatted_text, encoding=DEFAULT_ENCODING):
+def show_pager(formatted_text:str, encoding=DEFAULT_ENCODING) -> None:
     """
     Print a large text to the terminal using a pager.
 
@@ -692,14 +712,12 @@ def show_pager(formatted_text, encoding=DEFAULT_ENCODING):
         command_line = get_pager_command(formatted_text)
         if which(command_line[0]):
             pager = subprocess.Popen(command_line, stdin=subprocess.PIPE)
-            if is_unicode(formatted_text):
-                formatted_text = formatted_text.encode(encoding)
-            pager.communicate(input=formatted_text)
+            pager.communicate(input=formatted_text.encode(encoding))
             return
     output(formatted_text)
 
 
-def terminal_supports_colors(stream=None):
+def terminal_supports_colors(stream:Any=None) -> bool:
     """
     Check if a stream is connected to a terminal that supports ANSI escape sequences.
 
@@ -723,7 +741,7 @@ def terminal_supports_colors(stream=None):
     return connected_to_terminal(stream)
 
 
-def usage(usage_text):
+def usage(usage_text:str) -> None:
     """
     Print a human friendly usage message to the terminal.
 
@@ -741,6 +759,7 @@ def usage(usage_text):
     show_pager(usage_text)
 
 
+@args_from0(format)
 def warning(text, *args, **kw):
     """
     Show a warning message on the terminal.

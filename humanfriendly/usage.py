@@ -37,6 +37,7 @@ import csv
 import functools
 import logging
 import re
+from collections.abc import Callable
 
 # Standard library module or external dependency (see setup.py).
 from importlib import import_module
@@ -89,7 +90,7 @@ OPTION_PATTERN = re.compile(r'^(-\w|--\w+(-\w+)*(=\S+)?)$')
 logger = logging.getLogger(__name__)
 
 
-def format_usage(usage_text):
+def format_usage(usage_text:str) -> str:
     """
     Highlight special items in a usage message.
 
@@ -124,7 +125,7 @@ def format_usage(usage_text):
     return ''.join(formatted_lines)
 
 
-def find_meta_variables(usage_text):
+def find_meta_variables(usage_text:str) -> list[str]:
     """
     Find the meta variables in the given usage message.
 
@@ -146,7 +147,7 @@ def find_meta_variables(usage_text):
     return list(meta_variables)
 
 
-def parse_usage(text):
+def parse_usage(text:str) -> tuple[list[str], list[str]]:
     """
     Parse a usage message by inferring its structure (and making some assumptions :-).
 
@@ -231,7 +232,7 @@ def parse_usage(text):
     return introduction, documented_options
 
 
-def render_usage(text):
+def render_usage(text:str) -> str:
     """
     Reformat a command line program's usage message to reStructuredText_.
 
@@ -263,44 +264,48 @@ def render_usage(text):
     return '\n\n'.join(trim_empty_lines(o) for o in output)
 
 
-def inject_usage(module_name):
-    """
-    Use cog_ to inject a usage message into a reStructuredText_ file.
+try:
+    import cog # type: ignore[reportMissingImports]
+    def inject_usage(module_name:str) -> None:
+        """
+        Use cog_ to inject a usage message into a reStructuredText_ file.
 
-    :param module_name: The name of the module whose ``__doc__`` attribute is
-                        the source of the usage message (a string).
+        :param module_name: The name of the module whose ``__doc__`` attribute is
+                            the source of the usage message (a string).
 
-    This simple wrapper around :func:`render_usage()` makes it very easy to
-    inject a reformatted usage message into your documentation using cog_. To
-    use it you add a fragment like the following to your ``*.rst`` file::
+        This simple wrapper around :func:`render_usage()` makes it very easy to
+        inject a reformatted usage message into your documentation using cog_. To
+        use it you add a fragment like the following to your ``*.rst`` file::
 
-       .. [[[cog
-       .. from humanfriendly.usage import inject_usage
-       .. inject_usage('humanfriendly.cli')
-       .. ]]]
-       .. [[[end]]]
+           .. [[[cog
+           .. from humanfriendly.usage import inject_usage
+           .. inject_usage('humanfriendly.cli')
+           .. ]]]
+           .. [[[end]]]
 
-    The lines in the fragment above are single line reStructuredText_ comments
-    that are not copied to the output. Their purpose is to instruct cog_ where
-    to inject the reformatted usage message. Once you've added these lines to
-    your ``*.rst`` file, updating the rendered usage message becomes really
-    simple thanks to cog_:
+        The lines in the fragment above are single line reStructuredText_ comments
+        that are not copied to the output. Their purpose is to instruct cog_ where
+        to inject the reformatted usage message. Once you've added these lines to
+        your ``*.rst`` file, updating the rendered usage message becomes really
+        simple thanks to cog_:
 
-    .. code-block:: sh
+        .. code-block:: sh
 
-       $ cog.py -r README.rst
+           $ cog.py -r README.rst
 
-    This will inject or replace the rendered usage message in your
-    ``README.rst`` file with an up to date copy.
+        This will inject or replace the rendered usage message in your
+        ``README.rst`` file with an up to date copy.
 
-    .. _cog: http://nedbatchelder.com/code/cog/
-    """
-    import cog
-    usage_text = import_module(module_name).__doc__
-    cog.out("\n" + render_usage(usage_text) + "\n\n")
+        .. _cog: http://nedbatchelder.com/code/cog/
+        """
+        usage_text = import_module(module_name).__doc__
+        assert usage_text is not None
+        cog.out("\n" + render_usage(usage_text) + "\n\n")
+except ImportError:
+    pass
 
 
-def render_paragraph(paragraph, meta_variables):
+def render_paragraph(paragraph:str, meta_variables:list[str]) -> str:
     # Reformat the "Usage:" line to highlight "Usage:" in bold and show the
     # remainder of the line as pre-formatted text.
     if paragraph.startswith(USAGE_MARKER):
@@ -336,7 +341,7 @@ def render_paragraph(paragraph, meta_variables):
     return paragraph
 
 
-def replace_special_tokens(text, meta_variables, replace_fn):
+def replace_special_tokens(text:str, meta_variables:list[str], replace_fn):
     return USAGE_PATTERN.sub(functools.partial(
         replace_tokens_callback,
         meta_variables=meta_variables,
@@ -344,7 +349,7 @@ def replace_special_tokens(text, meta_variables, replace_fn):
     ), text)
 
 
-def replace_tokens_callback(match, meta_variables, replace_fn):
+def replace_tokens_callback(match:re.Match, meta_variables:list[str], replace_fn:Callable[[str], str]) -> str:
     token = match.group(0)
     if not (re.match('^[A-Z][A-Z0-9_]+$', token) and token not in meta_variables):
         token = replace_fn(token)
