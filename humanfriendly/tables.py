@@ -41,10 +41,10 @@ from humanfriendly.terminal import (
 
 # Public identifiers that require documentation.
 __all__ = (
-    'format_pretty_table',
-    'format_robust_table',
-    'format_rst_table',
-    'format_smart_table',
+    "format_pretty_table",
+    "format_robust_table",
+    "format_rst_table",
+    "format_smart_table",
 )
 
 # Compiled regular expression pattern to recognize table columns containing
@@ -57,10 +57,12 @@ __all__ = (
 # Response: I know, that's intentional. The use of this regular expression
 # pattern has a very high DWIM level and weird floating point notations do not
 # fall under the DWIM umbrella :-).
-NUMERIC_DATA_PATTERN = re.compile(r'^\d+(\.\d+)?$')
+NUMERIC_DATA_PATTERN = re.compile(r"^\d+(\.\d+)?$")
 
 
-def format_smart_table(data:Sequence[Sequence[str]], column_names:Sequence[str]) -> str:
+def format_smart_table(
+    data: Sequence[Sequence[str]], column_names: Sequence[str]
+) -> str:
     """
     Render tabular data using the most appropriate representation.
 
@@ -89,7 +91,7 @@ def format_smart_table(data:Sequence[Sequence[str]], column_names:Sequence[str])
     column_names = normalize_columns(column_names)
     # Make sure the input data doesn't contain any line breaks (because pretty
     # tables break horribly when a column's text contains a line break :-).
-    if not any(any('\n' in c for c in r) for r in data):
+    if not any(any("\n" in c for c in r) for r in data):
         # Render a pretty table.
         pretty_table = format_pretty_table(data, column_names)
         # Check if the pretty table fits in the terminal.
@@ -102,7 +104,12 @@ def format_smart_table(data:Sequence[Sequence[str]], column_names:Sequence[str])
     return format_robust_table(data, column_names)
 
 
-def format_pretty_table(data:Sequence[Sequence[str]], column_names:Sequence[str]|None=None, horizontal_bar:str='-', vertical_bar:str='|') -> str:
+def format_pretty_table(
+    data: Sequence[Sequence[str]],
+    column_names: Sequence[str] | None = None,
+    horizontal_bar: str = "-",
+    vertical_bar: str = "|",
+) -> str:
     """
     Render a table using characters like dashes and vertical bars to emulate borders.
 
@@ -168,7 +175,9 @@ def format_pretty_table(data:Sequence[Sequence[str]], column_names:Sequence[str]
         for column_index, column in enumerate(row):
             widths[column_index] = max(widths[column_index], ansi_width(column))
             if not (column_names and row_index == 0):
-                numeric_data[column_index].append(bool(NUMERIC_DATA_PATTERN.match(ansi_strip(column))))
+                numeric_data[column_index].append(
+                    bool(NUMERIC_DATA_PATTERN.match(ansi_strip(column)))
+                )
     # Create a horizontal bar of dashes as a delimiter.
     line_delimiter = horizontal_bar * (sum(widths.values()) + len(widths) * 3 + 1)
     # Start the table with a vertical bar.
@@ -177,22 +186,24 @@ def format_pretty_table(data:Sequence[Sequence[str]], column_names:Sequence[str]
     for row_index, row in enumerate(data):
         line = [vertical_bar]
         for column_index, column in enumerate(row):
-            padding = ' ' * (widths[column_index] - ansi_width(column))
+            padding = " " * (widths[column_index] - ansi_width(column))
             if all(numeric_data[column_index]):
-                line.append(' ' + padding + column + ' ')
+                line.append(" " + padding + column + " ")
             else:
-                line.append(' ' + column + padding + ' ')
+                line.append(" " + column + padding + " ")
             line.append(vertical_bar)
-        lines.append(u''.join(line))
+        lines.append("".join(line))
         if column_names and row_index == 0:
             lines.append(line_delimiter)
     # End the table with a vertical bar.
     lines.append(line_delimiter)
     # Join the lines, returning a single string.
-    return u'\n'.join(lines)
+    return "\n".join(lines)
 
 
-def format_robust_table(data:Sequence[Sequence[str]], column_names:Sequence[str]) -> str:
+def format_robust_table(
+    data: Sequence[Sequence[str]], column_names: Sequence[str]
+) -> str:
     """
     Render tabular data with one column per line (allowing columns with line breaks).
 
@@ -249,7 +260,7 @@ def format_robust_table(data:Sequence[Sequence[str]], column_names:Sequence[str]
         lines = []
         for column_index, column_text in enumerate(normalize_columns(row)):
             stripped_column = column_text.strip()
-            if '\n' not in stripped_column:
+            if "\n" not in stripped_column:
                 # Columns without line breaks are formatted inline.
                 lines.append("%s %s" % (column_names[column_index], stripped_column))
             else:
@@ -263,15 +274,17 @@ def format_robust_table(data:Sequence[Sequence[str]], column_names:Sequence[str]
     # Calculate the width of the row delimiter.
     num_rows, num_columns = find_terminal_size()
     longest_line = max(max(map(ansi_width, lines)) for lines in blocks)
-    delimiter = u"\n%s\n" % ('-' * min(longest_line, num_columns))
+    delimiter = "\n%s\n" % ("-" * min(longest_line, num_columns))
     # Force a delimiter at the start and end of the table.
     blocks.insert(0, "")
     blocks.append("")
     # Embed the row delimiter between every two blocks.
-    return delimiter.join(u"\n".join(b) for b in blocks).strip()
+    return delimiter.join("\n".join(b) for b in blocks).strip()
 
 
-def format_rst_table(data:Sequence[Sequence[str]], column_names:Sequence[str]|None=None) -> str:
+def format_rst_table(
+    data: Sequence[Sequence[str]], column_names: Sequence[str] | None = None
+) -> str:
     """
     Render a table in reStructuredText_ format.
 
@@ -319,16 +332,16 @@ def format_rst_table(data:Sequence[Sequence[str]], column_names:Sequence[str]|No
             if index < (len(row) - 1):
                 row[index] = column.ljust(widths[index])
     # Add table markers.
-    delimiter = ['=' * w for i, w in sorted(widths.items())]
+    delimiter = ["=" * w for i, w in sorted(widths.items())]
     if column_names:
         data.insert(1, delimiter)
     data.insert(0, delimiter)
     data.append(delimiter)
     # Join the lines and columns together.
-    return '\n'.join('  '.join(r) for r in data)
+    return "\n".join("  ".join(r) for r in data)
 
 
-def normalize_columns(row:Sequence[str], expandtabs:bool=False) -> list[str]:
+def normalize_columns(row: Sequence[str], expandtabs: bool = False) -> list[str]:
     results = []
     for value in row:
         text = coerce_string(value)
@@ -338,5 +351,5 @@ def normalize_columns(row:Sequence[str], expandtabs:bool=False) -> list[str]:
     return results
 
 
-def highlight_column_name(name:str) -> str:
+def highlight_column_name(name: str) -> str:
     return ansi_wrap(name, bold=True, color=HIGHLIGHT_COLOR)

@@ -20,7 +20,6 @@ The :mod:`~humanfriendly.text` module contains simple functions to manipulate te
 """
 
 # Standard library modules.
-import numbers
 import random
 import re
 import string
@@ -31,29 +30,29 @@ import typing
 if typing.TYPE_CHECKING:
     from _typeshed import ConvertibleToFloat
 
-from humanfriendly.decorators import args_from0, args_from1
+from humanfriendly.decorators import args_from0
 
 # Public identifiers that require documentation.
 __all__ = (
-    'compact',
-    'compact_empty_lines',
-    'concatenate',
-    'dedent',
-    'format',
-    'generate_slug',
-    'is_empty_line',
-    'join_lines',
-    'pluralize',
-    'pluralize_raw',
-    'random_string',
-    'split',
-    'split_paragraphs',
-    'tokenize',
-    'trim_empty_lines',
+    "compact",
+    "compact_empty_lines",
+    "concatenate",
+    "dedent",
+    "format",
+    "generate_slug",
+    "is_empty_line",
+    "join_lines",
+    "pluralize",
+    "pluralize_raw",
+    "random_string",
+    "split",
+    "split_paragraphs",
+    "tokenize",
+    "trim_empty_lines",
 )
 
 
-def compact(text:str, *args:object, **kw:object) -> str:
+def compact(text: str, *args: object, **kw: object) -> str:
     '''
     Compact whitespace in a string.
 
@@ -80,11 +79,11 @@ def compact(text:str, *args:object, **kw:object) -> str:
     sensitivity.
     '''
     non_whitespace_tokens = text.split()
-    compacted_text = ' '.join(non_whitespace_tokens)
+    compacted_text = " ".join(non_whitespace_tokens)
     return format(compacted_text, *args, **kw)
 
 
-def compact_empty_lines(text:str) -> str:
+def compact_empty_lines(text: str) -> str:
     """
     Replace repeating empty lines with a single empty line (similar to ``cat -s``).
 
@@ -98,10 +97,12 @@ def compact_empty_lines(text:str) -> str:
             lines.pop(i)
         else:
             i += 1
-    return ''.join(lines)
+    return "".join(lines)
 
 
-def concatenate(items:Iterable[str], conjunction:str='and', serial_comma:bool=False) -> str:
+def concatenate(
+    items: Iterable[str], conjunction: str = "and", serial_comma: bool = False
+) -> str:
     """
     Concatenate a list of items in a human friendly way.
 
@@ -131,17 +132,17 @@ def concatenate(items:Iterable[str], conjunction:str='and', serial_comma:bool=Fa
     items = list(items)
     if len(items) > 1:
         final_item = items.pop()
-        formatted = ', '.join(items)
+        formatted = ", ".join(items)
         if serial_comma:
-            formatted += ','
-        return ' '.join([formatted, conjunction, final_item])
+            formatted += ","
+        return " ".join([formatted, conjunction, final_item])
     elif items:
         return items[0]
     else:
-        return ''
+        return ""
 
 
-def dedent(text:str, *args:object, **kw:object):
+def dedent(text: str, *args: object, **kw: object):
     """
     Dedent a string (remove common leading whitespace from all lines).
 
@@ -167,7 +168,7 @@ def dedent(text:str, *args:object, **kw:object):
     return format(trimmed_text, *args, **kw)
 
 
-def format(text:str, *args:object, **kw:object) -> str:
+def format(text: str, *args: object, **kw: object) -> str:
     """
     Format a string using the string formatting operator and/or :meth:`str.format()`.
 
@@ -251,7 +252,7 @@ def format(text:str, *args:object, **kw:object) -> str:
     return text
 
 
-def generate_slug(text:str, delimiter:str="-") -> str:
+def generate_slug(text: str, delimiter: str = "-") -> str:
     """
     Convert text to a normalized "slug" without whitespace.
 
@@ -272,7 +273,7 @@ def generate_slug(text:str, delimiter:str="-") -> str:
     return slug
 
 
-def is_empty_line(text:str) -> bool:
+def is_empty_line(text: str) -> bool:
     """
     Check if a text is empty or contains only whitespace.
 
@@ -283,7 +284,7 @@ def is_empty_line(text:str) -> bool:
     return len(text) == 0 or text.isspace()
 
 
-def join_lines(text:str) -> str:
+def join_lines(text: str) -> str:
     """
     Remove "hard wrapping" from the paragraphs in a string.
 
@@ -296,10 +297,12 @@ def join_lines(text:str) -> str:
     break :func:`join_lines()` (in that case you can use :func:`dedent()`
     before calling :func:`join_lines()`).
     """
-    return re.sub(r'(\S)\n(\S)', r'\1 \2', text)
+    return re.sub(r"(\S)\n(\S)", r"\1 \2", text)
 
 
-def pluralize_raw(count:"ConvertibleToFloat", singular:str, plural:str|None=None) -> str:
+def pluralize_raw(
+    count: "ConvertibleToFloat", singular: str, plural: str | None = None
+) -> str:
     """
     Select the singular or plural form of a word based on a count.
 
@@ -317,7 +320,7 @@ def pluralize_raw(count:"ConvertibleToFloat", singular:str, plural:str|None=None
     specify both forms.
     """
     if not plural:
-        plural = singular + 's'
+        plural = singular + "s"
     return singular if float(count) == 1.0 else plural
 
 
@@ -333,10 +336,12 @@ def pluralize(count, singular, plural=None) -> str:
 
     See :func:`pluralize_raw()` for the logic underneath :func:`pluralize()`.
     """
-    return '%s %s' % (count, pluralize_raw(count, singular, plural))
+    return "%s %s" % (count, pluralize_raw(count, singular, plural))
 
 
-def random_string(length:int|tuple[int, int]=(25, 100), characters:str=string.ascii_letters) -> str:
+def random_string(
+    length: int | tuple[int, int] = (25, 100), characters: str = string.ascii_letters
+) -> str:
     """random_string(length=(25, 100), characters=string.ascii_letters)
     Generate a random string.
 
@@ -351,15 +356,15 @@ def random_string(length:int|tuple[int, int]=(25, 100), characters:str=string.as
     time I included it in :mod:`humanfriendly.text` I had already included
     variants of this function in seven different test suites :-).
     """
-    length_normalized:int
+    length_normalized: int
     if isinstance(length, tuple):
         length_normalized = random.randint(length[0], length[1])
     else:
         length_normalized = length
-    return ''.join(random.choice(characters) for _ in range(length_normalized))
+    return "".join(random.choice(characters) for _ in range(length_normalized))
 
 
-def split(text:str, delimiter:str=',') -> list[str]:
+def split(text: str, delimiter: str = ",") -> list[str]:
     """
     Split a comma-separated list of strings.
 
@@ -392,10 +397,14 @@ def split(text:str, delimiter:str=',') -> list[str]:
      'error': ['red'],
      'critical': ['red', 'bold']}
     """
-    return [token.strip() for token in text.split(delimiter) if token and not token.isspace()]
+    return [
+        token.strip()
+        for token in text.split(delimiter)
+        if token and not token.isspace()
+    ]
 
 
-def split_paragraphs(text:str) -> list[str]:
+def split_paragraphs(text: str) -> list[str]:
     """
     Split a string into paragraphs (one or more lines delimited by an empty line).
 
@@ -403,14 +412,14 @@ def split_paragraphs(text:str) -> list[str]:
     :returns: A list of strings.
     """
     paragraphs = []
-    for chunk in text.split('\n\n'):
+    for chunk in text.split("\n\n"):
         chunk = trim_empty_lines(chunk)
         if chunk and not chunk.isspace():
             paragraphs.append(chunk)
     return paragraphs
 
 
-def tokenize(text:str) -> list[str|float]:
+def tokenize(text: str) -> list[str | float]:
     """
     Tokenize a text into numbers and strings.
 
@@ -434,9 +443,9 @@ def tokenize(text:str) -> list[str|float]:
     [42.5, 'MB']
     """
     tokenized_input = []
-    for token in re.split(r'(\d+(?:\.\d+)?)', text):
+    for token in re.split(r"(\d+(?:\.\d+)?)", text):
         token = token.strip()
-        if re.match(r'\d+\.\d+', token):
+        if re.match(r"\d+\.\d+", token):
             tokenized_input.append(float(token))
         elif token.isdigit():
             tokenized_input.append(int(token))
@@ -445,7 +454,7 @@ def tokenize(text:str) -> list[str|float]:
     return tokenized_input
 
 
-def trim_empty_lines(text:str) -> str:
+def trim_empty_lines(text: str) -> str:
     """
     Trim leading and trailing empty lines from the given text.
 
@@ -457,4 +466,4 @@ def trim_empty_lines(text:str) -> str:
         lines.pop(0)
     while lines and is_empty_line(lines[-1]):
         lines.pop(-1)
-    return ''.join(lines)
+    return "".join(lines)

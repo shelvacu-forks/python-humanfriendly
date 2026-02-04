@@ -183,7 +183,9 @@ def man_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
     hyperlink pointing to the Debian Linux manual pages is emitted.
     """
     man_url = "https://manpages.debian.org/%s" % text
-    reference = docutils.nodes.reference(rawtext, docutils.utils.unescape(text), refuri=man_url, **options)
+    reference = docutils.nodes.reference(
+        rawtext, docutils.utils.unescape(text), refuri=man_url, **options
+    )
     return [reference], []
 
 
@@ -206,7 +208,9 @@ def pypi_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
     hyperlink pointing to the Python Package Index is emitted.
     """
     pypi_url = "https://pypi.org/project/%s/" % text
-    reference = docutils.nodes.reference(rawtext, docutils.utils.unescape(text), refuri=pypi_url, **options)
+    reference = docutils.nodes.reference(
+        rawtext, docutils.utils.unescape(text), refuri=pypi_url, **options
+    )
     return [reference], []
 
 
@@ -275,7 +279,9 @@ def special_methods_callback(app, what, name, obj, skip, options):
     The parameters expected by this function are those defined for Sphinx event
     callback functions (i.e. I'm not going to document them here :-).
     """
-    if getattr(obj, "__doc__", None) and isinstance(obj, (types.FunctionType, types.MethodType)):
+    if getattr(obj, "__doc__", None) and isinstance(
+        obj, (types.FunctionType, types.MethodType)
+    ):
         return False
     else:
         return skip

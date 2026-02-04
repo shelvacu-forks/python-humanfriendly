@@ -45,26 +45,26 @@ NOTHING = object()
 
 # Public identifiers that require documentation.
 __all__ = (
-    'CallableTimedOut',
-    'CaptureBuffer',
-    'CaptureOutput',
-    'ContextManager',
-    'CustomSearchPath',
-    'MockedProgram',
-    'PatchedAttribute',
-    'PatchedItem',
-    'TemporaryDirectory',
-    'TestCase',
-    'configure_logging',
-    'make_dirs',
-    'retry',
-    'run_cli',
-    'skip_on_raise',
-    'touch',
+    "CallableTimedOut",
+    "CaptureBuffer",
+    "CaptureOutput",
+    "ContextManager",
+    "CustomSearchPath",
+    "MockedProgram",
+    "PatchedAttribute",
+    "PatchedItem",
+    "TemporaryDirectory",
+    "TestCase",
+    "configure_logging",
+    "make_dirs",
+    "retry",
+    "run_cli",
+    "skip_on_raise",
+    "touch",
 )
 
 
-def configure_logging(log_level:int|str=logging.DEBUG) -> None:
+def configure_logging(log_level: int | str = logging.DEBUG) -> None:
     """configure_logging(log_level=logging.DEBUG)
     Automatically configure logging to the terminal.
 
@@ -78,15 +78,17 @@ def configure_logging(log_level:int|str=logging.DEBUG) -> None:
     """
     try:
         import coloredlogs
+
         coloredlogs.install(level=log_level)
     except ImportError:
         logging.basicConfig(
             level=log_level,
-            format='%(asctime)s %(name)s[%(process)d] %(levelname)s %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S')
+            format="%(asctime)s %(name)s[%(process)d] %(levelname)s %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
 
 
-def make_dirs(pathname:str) -> None:
+def make_dirs(pathname: str) -> None:
     """
     Create missing directories.
 
@@ -96,7 +98,11 @@ def make_dirs(pathname:str) -> None:
         os.makedirs(pathname)
 
 
-def retry[T](func:Callable[[], T], timeout:float=60, exc_type:type[Exception]=AssertionError) -> T:
+def retry[T](
+    func: Callable[[], T],
+    timeout: float = 60,
+    exc_type: type[Exception] = AssertionError,
+) -> T:
     """retry(func, timeout=60, exc_type=AssertionError)
     Retry a function until assertions no longer fail.
 
@@ -134,7 +140,14 @@ def retry[T](func:Callable[[], T], timeout:float=60, exc_type:type[Exception]=As
             pause *= 2
 
 
-def run_cli(entry_point:Callable[[], object], *arguments_passed:str, capture:bool=True, input:str="", merged:bool=False, program_name:str=sys.executable) -> tuple[int, str]:
+def run_cli(
+    entry_point: Callable[[], object],
+    *arguments_passed: str,
+    capture: bool = True,
+    input: str = "",
+    merged: bool = False,
+    program_name: str = sys.executable,
+) -> tuple[int, str]:
     """
     Test a command line entry point.
 
@@ -159,7 +172,7 @@ def run_cli(entry_point:Callable[[], object], *arguments_passed:str, capture:boo
               1. The return code (an integer).
               2. The captured output (a string).
     """
-    arguments:list[str] = list(arguments_passed)
+    arguments: list[str] = list(arguments_passed)
     # Add the `program_name' option to the arguments.
     arguments.insert(0, program_name)
     # Log the command line arguments (and the fact that we're about to call the
@@ -169,11 +182,11 @@ def run_cli(entry_point:Callable[[], object], *arguments_passed:str, capture:boo
     # interface raises an exception (whether the exception type is SystemExit
     # or something else).
     returncode = 0
-    stdout:str|None = None
-    stderr:str|None = None
+    stdout: str | None = None
+    stderr: str | None = None
     try:
         # Temporarily override sys.argv.
-        with PatchedAttribute(sys, 'argv', arguments):
+        with PatchedAttribute(sys, "argv", arguments):
             # Manipulate the standard input/output/error streams?
             with CaptureOutput(enabled=capture, input=input, merged=merged) as capturer:
                 try:
@@ -189,7 +202,9 @@ def run_cli(entry_point:Callable[[], object], *arguments_passed:str, capture:boo
                     configure_logging()
     except BaseException as e:
         if isinstance(e, SystemExit):
-            logger.debug("Intercepting return code %s from SystemExit exception.", e.code)
+            logger.debug(
+                "Intercepting return code %s from SystemExit exception.", e.code
+            )
             if e.code is None:
                 returncode = 0
             elif isinstance(e.code, int):
@@ -197,7 +212,9 @@ def run_cli(entry_point:Callable[[], object], *arguments_passed:str, capture:boo
             else:
                 returncode = 1
         else:
-            logger.warning("Defaulting return code to 1 due to raised exception.", exc_info=True)
+            logger.warning(
+                "Defaulting return code to 1 due to raised exception.", exc_info=True
+            )
             returncode = 1
     else:
         logger.debug("Command line entry point returned successfully!")
@@ -205,8 +222,8 @@ def run_cli(entry_point:Callable[[], object], *arguments_passed:str, capture:boo
     assert stderr is not None
     # Always log the output captured on stdout/stderr, to make it easier to
     # diagnose test failures (but avoid duplicate logging when merged=True).
-    merged_streams = [('merged streams', stdout)]
-    separate_streams = [('stdout', stdout), ('stderr', stderr)]
+    merged_streams = [("merged streams", stdout)]
+    separate_streams = [("stdout", stdout), ("stderr", stderr)]
     streams = merged_streams if merged else separate_streams
     for name, value in streams:
         if value:
@@ -216,7 +233,9 @@ def run_cli(entry_point:Callable[[], object], *arguments_passed:str, capture:boo
     return returncode, stdout
 
 
-def skip_on_raise[**P, T](*exc_types: type[Exception]) -> Callable[[Callable[P, T]], Callable[P, T]]:
+def skip_on_raise[**P, T](
+    *exc_types: type[Exception],
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Decorate a test function to translation specific exception types to :exc:`unittest.SkipTest`.
 
@@ -224,19 +243,24 @@ def skip_on_raise[**P, T](*exc_types: type[Exception]) -> Callable[[Callable[P, 
                       types to be translated to :exc:`unittest.SkipTest`.
     :returns: A decorator function specialized to `exc_types`.
     """
+
     def decorator(function):
         @functools.wraps(function)
         def wrapper(*args, **kw):
             try:
                 return function(*args, **kw)
             except exc_types as e:
-                logger.debug("Translating exception to unittest.SkipTest ..", exc_info=True)
+                logger.debug(
+                    "Translating exception to unittest.SkipTest ..", exc_info=True
+                )
                 raise unittest.SkipTest("skipping test because %s was raised" % type(e))
+
         return wrapper
+
     return decorator
 
 
-def touch(filename:str) -> None:
+def touch(filename: str) -> None:
     """
     The equivalent of the UNIX :man:`touch` program in Python.
 
@@ -246,17 +270,15 @@ def touch(filename:str) -> None:
     :func:`make_dirs()`.
     """
     make_dirs(os.path.dirname(filename))
-    with open(filename, 'a'):
+    with open(filename, "a"):
         os.utime(filename, None)
 
 
 class CallableTimedOut(Exception):
-
     """Raised by :func:`retry()` when the timeout expires."""
 
 
 class ContextManager:
-
     """Base class to enable composition of context managers."""
 
     def __enter__(self):
@@ -268,7 +290,6 @@ class ContextManager:
 
 
 class PatchedAttribute(ContextManager):
-
     """Context manager that temporary replaces an object attribute using :func:`setattr()`."""
 
     def __init__(self, obj, name, value):
@@ -293,7 +314,9 @@ class PatchedAttribute(ContextManager):
         # Enable composition of context managers.
         super(PatchedAttribute, self).__enter__()
         # Patch the object's attribute.
-        self.original_value = getattr(self.object_to_patch, self.attribute_to_patch, NOTHING)
+        self.original_value = getattr(
+            self.object_to_patch, self.attribute_to_patch, NOTHING
+        )
         setattr(self.object_to_patch, self.attribute_to_patch, self.patched_value)
         return self.object_to_patch
 
@@ -309,7 +332,6 @@ class PatchedAttribute(ContextManager):
 
 
 class PatchedItem(ContextManager):
-
     """Context manager that temporary replaces an object item using :meth:`~object.__setitem__()`."""
 
     def __init__(self, obj, item, value):
@@ -353,7 +375,6 @@ class PatchedItem(ContextManager):
 
 
 class TemporaryDirectory(ContextManager):
-
     """
     Easy temporary directory creation & cleanup using the :keyword:`with` statement.
 
@@ -399,7 +420,6 @@ class TemporaryDirectory(ContextManager):
 
 
 class MockedHomeDirectory(PatchedItem, TemporaryDirectory):
-
     """
     Context manager to temporarily change ``$HOME`` (the current user's profile directory).
 
@@ -409,7 +429,7 @@ class MockedHomeDirectory(PatchedItem, TemporaryDirectory):
 
     def __init__(self):
         """Initialize a :class:`MockedHomeDirectory` object."""
-        PatchedItem.__init__(self, os.environ, 'HOME', os.environ.get('HOME'))
+        PatchedItem.__init__(self, os.environ, "HOME", os.environ.get("HOME"))
         TemporaryDirectory.__init__(self)
 
     def __enter__(self):
@@ -435,7 +455,6 @@ class MockedHomeDirectory(PatchedItem, TemporaryDirectory):
 
 
 class CustomSearchPath(PatchedItem, TemporaryDirectory):
-
     """
     Context manager to temporarily customize ``$PATH`` (the executable search path).
 
@@ -454,7 +473,7 @@ class CustomSearchPath(PatchedItem, TemporaryDirectory):
         # Initialize our own instance variables.
         self.isolated_search_path = isolated
         # Selectively initialize our superclasses.
-        PatchedItem.__init__(self, os.environ, 'PATH', self.current_search_path)
+        PatchedItem.__init__(self, os.environ, "PATH", self.current_search_path)
         TemporaryDirectory.__init__(self)
 
     def __enter__(self):
@@ -469,8 +488,11 @@ class CustomSearchPath(PatchedItem, TemporaryDirectory):
         # Override the value to patch now that we have
         # the pathname of the temporary directory.
         self.patched_value = (
-            directory if self.isolated_search_path
-            else os.pathsep.join([directory] + self.current_search_path.split(os.pathsep))
+            directory
+            if self.isolated_search_path
+            else os.pathsep.join(
+                [directory] + self.current_search_path.split(os.pathsep)
+            )
         )
         # Temporary patch the $PATH.
         PatchedItem.__enter__(self)
@@ -485,11 +507,10 @@ class CustomSearchPath(PatchedItem, TemporaryDirectory):
     @property
     def current_search_path(self):
         """The value of ``$PATH`` or :data:`os.defpath` (a string)."""
-        return os.environ.get('PATH', os.defpath)
+        return os.environ.get("PATH", os.defpath)
 
 
 class MockedProgram(CustomSearchPath):
-
     """
     Context manager to mock the existence of a program (executable).
 
@@ -523,14 +544,16 @@ class MockedProgram(CustomSearchPath):
                   been added to ``$PATH`` (a string).
         """
         directory = super(MockedProgram, self).__enter__()
-        self.program_signal_file = os.path.join(directory, 'program-was-run-%s' % random_string(10))
+        self.program_signal_file = os.path.join(
+            directory, "program-was-run-%s" % random_string(10)
+        )
         pathname = os.path.join(directory, self.program_name)
-        with open(pathname, 'w') as handle:
-            handle.write('#!/bin/sh\n')
-            handle.write('echo > %s\n' % shlex.quote(self.program_signal_file))
+        with open(pathname, "w") as handle:
+            handle.write("#!/bin/sh\n")
+            handle.write("echo > %s\n" % shlex.quote(self.program_signal_file))
             if self.program_script:
-                handle.write('%s\n' % self.program_script.strip())
-            handle.write('exit %i\n' % self.program_returncode)
+                handle.write("%s\n" % self.program_script.strip())
+            handle.write("exit %i\n" % self.program_returncode)
         os.chmod(pathname, 0o755)
         return directory
 
@@ -542,14 +565,14 @@ class MockedProgram(CustomSearchPath):
                  the mock program hasn't been run.
         """
         try:
-            assert self.program_signal_file and os.path.isfile(self.program_signal_file), \
-                ("It looks like %r was never run!" % self.program_name)
+            assert self.program_signal_file and os.path.isfile(
+                self.program_signal_file
+            ), "It looks like %r was never run!" % self.program_name
         finally:
             return super(MockedProgram, self).__exit__(*args, **kw)
 
 
 class CaptureOutput(ContextManager):
-
     """
     Context manager that captures what's written to :data:`sys.stdout` and :data:`sys.stderr`.
 
@@ -566,7 +589,7 @@ class CaptureOutput(ContextManager):
        The :class:`CaptureBuffer` object used to capture the standard error stream.
     """
 
-    def __init__(self, merged=False, input='', enabled=True):
+    def __init__(self, merged=False, input="", enabled=True):
         """
         Initialize a :class:`CaptureOutput` object.
 
@@ -587,7 +610,7 @@ class CaptureOutput(ContextManager):
         if enabled:
             self.patched_attributes.extend(
                 PatchedAttribute(sys, name, getattr(self, name))
-                for name in ('stdin', 'stdout', 'stderr')
+                for name in ("stdin", "stdout", "stderr")
             )
 
     def __enter__(self):
@@ -617,7 +640,6 @@ class CaptureOutput(ContextManager):
 
 
 class CaptureBuffer(StringIO):
-
     """
     Helper for :class:`CaptureOutput` to provide an easy to use API.
 
@@ -637,7 +659,6 @@ class CaptureBuffer(StringIO):
 
 
 class TestCase(unittest.TestCase):
-
     """Subclass of :class:`unittest.TestCase` with automatic logging and other miscellaneous features."""
 
     def __init__(self, *args, **kw):

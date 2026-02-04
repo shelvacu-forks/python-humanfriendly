@@ -22,16 +22,16 @@ enhanced to recognize and support this. For details please refer to the
 """
 
 # Standard library modules.
-import codecs
-import numbers
 import os
 import platform
 import re
 import subprocess
 import sys
-import io
-from collections.abc import Callable
-from typing import TYPE_CHECKING, TypeVar, TypeVarTuple, ParamSpec, Concatenate, Any, TypeAliasType, reveal_type, Unpack, TextIO, BinaryIO
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    TextIO,
+)
 
 if TYPE_CHECKING:
     import _typeshed
@@ -45,7 +45,7 @@ if sys.platform != "win32":
     import struct
 
 # Modules included in our package.
-from humanfriendly.compat import coerce_string, is_unicode, on_windows, which
+from humanfriendly.compat import coerce_string, on_windows, which
 from humanfriendly.decorators import cached, args_from0, args_from1
 from humanfriendly.deprecation import define_aliases
 from humanfriendly.text import concatenate, format
@@ -53,61 +53,63 @@ from humanfriendly.usage import format_usage
 
 # Public identifiers that require documentation.
 __all__ = (
-    'ANSI_COLOR_CODES',
-    'ANSI_CSI',
-    'ANSI_ERASE_LINE',
-    'ANSI_HIDE_CURSOR',
-    'ANSI_RESET',
-    'ANSI_SGR',
-    'ANSI_SHOW_CURSOR',
-    'ANSI_TEXT_STYLES',
-    'CLEAN_OUTPUT_PATTERN',
-    'DEFAULT_COLUMNS',
-    'DEFAULT_ENCODING',
-    'DEFAULT_LINES',
-    'HIGHLIGHT_COLOR',
-    'ansi_strip',
-    'ansi_style',
-    'ansi_width',
-    'ansi_wrap',
-    'auto_encode',
-    'clean_terminal_output',
-    'connected_to_terminal',
-    'enable_ansi_support',
-    'find_terminal_size',
-    'find_terminal_size_using_ioctl',
-    'find_terminal_size_using_stty',
-    'get_pager_command',
-    'have_windows_native_ansi_support',
-    'message',
-    'output',
-    'readline_strip',
-    'readline_wrap',
-    'show_pager',
-    'terminal_supports_colors',
-    'usage',
-    'warning',
+    "ANSI_COLOR_CODES",
+    "ANSI_CSI",
+    "ANSI_ERASE_LINE",
+    "ANSI_HIDE_CURSOR",
+    "ANSI_RESET",
+    "ANSI_SGR",
+    "ANSI_SHOW_CURSOR",
+    "ANSI_TEXT_STYLES",
+    "CLEAN_OUTPUT_PATTERN",
+    "DEFAULT_COLUMNS",
+    "DEFAULT_ENCODING",
+    "DEFAULT_LINES",
+    "HIGHLIGHT_COLOR",
+    "ansi_strip",
+    "ansi_style",
+    "ansi_width",
+    "ansi_wrap",
+    "auto_encode",
+    "clean_terminal_output",
+    "connected_to_terminal",
+    "enable_ansi_support",
+    "find_terminal_size",
+    "find_terminal_size_using_ioctl",
+    "find_terminal_size_using_stty",
+    "get_pager_command",
+    "have_windows_native_ansi_support",
+    "message",
+    "output",
+    "readline_strip",
+    "readline_wrap",
+    "show_pager",
+    "terminal_supports_colors",
+    "usage",
+    "warning",
 )
 
-ANSI_CSI = '\x1b['
+ANSI_CSI = "\x1b["
 """The ANSI "Control Sequence Introducer" (a string)."""
 
-ANSI_SGR = 'm'
+ANSI_SGR = "m"
 """The ANSI "Select Graphic Rendition" sequence (a string)."""
 
-ANSI_ERASE_LINE = '%sK' % ANSI_CSI
+ANSI_ERASE_LINE = "%sK" % ANSI_CSI
 """The ANSI escape sequence to erase the current line (a string)."""
 
-ANSI_RESET = '%s0%s' % (ANSI_CSI, ANSI_SGR)
+ANSI_RESET = "%s0%s" % (ANSI_CSI, ANSI_SGR)
 """The ANSI escape sequence to reset styling (a string)."""
 
-ANSI_HIDE_CURSOR = '%s?25l' % ANSI_CSI
+ANSI_HIDE_CURSOR = "%s?25l" % ANSI_CSI
 """The ANSI escape sequence to hide the text cursor (a string)."""
 
-ANSI_SHOW_CURSOR = '%s?25h' % ANSI_CSI
+ANSI_SHOW_CURSOR = "%s?25h" % ANSI_CSI
 """The ANSI escape sequence to show the text cursor (a string)."""
 
-ANSI_COLOR_CODES = dict(black=0, red=1, green=2, yellow=3, blue=4, magenta=5, cyan=6, white=7)
+ANSI_COLOR_CODES = dict(
+    black=0, red=1, green=2, yellow=3, blue=4, magenta=5, cyan=6, white=7
+)
 """
 A dictionary with (name, number) pairs of `portable color codes`_. Used by
 :func:`ansi_style()` to generate ANSI escape sequences that change font color.
@@ -115,14 +117,16 @@ A dictionary with (name, number) pairs of `portable color codes`_. Used by
 .. _portable color codes: http://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 """
 
-ANSI_TEXT_STYLES = dict(bold=1, faint=2, italic=3, underline=4, inverse=7, strike_through=9)
+ANSI_TEXT_STYLES = dict(
+    bold=1, faint=2, italic=3, underline=4, inverse=7, strike_through=9
+)
 """
 A dictionary with (name, number) pairs of text styles (effects). Used by
 :func:`ansi_style()` to generate ANSI escape sequences that change text
 styles. Only widely supported text styles are included here.
 """
 
-CLEAN_OUTPUT_PATTERN = re.compile(u'(\r|\n|\b|%s)' % re.escape(ANSI_ERASE_LINE))
+CLEAN_OUTPUT_PATTERN = re.compile("(\r|\n|\b|%s)" % re.escape(ANSI_ERASE_LINE))
 """
 A compiled regular expression used to separate significant characters from other text.
 
@@ -137,10 +141,10 @@ DEFAULT_LINES = 25
 DEFAULT_COLUMNS = 80
 """The default number of columns in a terminal (an integer)."""
 
-DEFAULT_ENCODING = 'UTF-8'
+DEFAULT_ENCODING = "UTF-8"
 """The output encoding for Unicode strings."""
 
-HIGHLIGHT_COLOR = os.environ.get('HUMANFRIENDLY_HIGHLIGHT_COLOR', 'green')
+HIGHLIGHT_COLOR = os.environ.get("HUMANFRIENDLY_HIGHLIGHT_COLOR", "green")
 """
 The color used to highlight important tokens in formatted text (e.g. the usage
 message of the ``humanfriendly`` program). If the environment variable
@@ -148,7 +152,8 @@ message of the ``humanfriendly`` program). If the environment variable
 :data:`HIGHLIGHT_COLOR`.
 """
 
-def ansi_strip(text:str, readline_hints:bool=True) -> str:
+
+def ansi_strip(text: str, readline_hints: bool = True) -> str:
     """
     Strip ANSI escape sequences from the given string.
 
@@ -158,27 +163,25 @@ def ansi_strip(text:str, readline_hints:bool=True) -> str:
                            used to remove `readline hints`_ from the string.
     :returns: The text without ANSI escape sequences (a string).
     """
-    pattern = '%s.*?%s' % (re.escape(ANSI_CSI), re.escape(ANSI_SGR))
-    text = re.sub(pattern, '', text)
+    pattern = "%s.*?%s" % (re.escape(ANSI_CSI), re.escape(ANSI_SGR))
+    text = re.sub(pattern, "", text)
     if readline_hints:
         text = readline_strip(text)
     return text
 
 
-# def ansi_style(**kw) -> str:
 def ansi_style(
-        *,
-        bold:bool=False,
-        faint:bool=False,
-        italic:bool=False,
-        underline:bool=False,
-        inverse:bool=False,
-        strike_through:bool=False,
-
-        color:tuple[int, int, int] | list[int] | int | str | None=None,
-        background:tuple[int, int, int] | list[int] | int | str | None=None,
-        bright:bool=False,
-        readline_hints:bool=False,
+    *,
+    bold: bool = False,
+    faint: bool = False,
+    italic: bool = False,
+    underline: bool = False,
+    inverse: bool = False,
+    strike_through: bool = False,
+    color: tuple[int, int, int] | list[int] | int | str | None = None,
+    background: tuple[int, int, int] | list[int] | int | str | None = None,
+    bright: bool = False,
+    readline_hints: bool = False,
 ) -> str:
     """
     Generate ANSI escape sequences for the given color and/or style(s).
@@ -253,43 +256,43 @@ def ansi_style(
     if strike_through:
         sequences.append(ANSI_TEXT_STYLES["strike_through"])
     # Append the color code (if any).
-    for color_type in 'color', 'background':
-        color_value = background if color_type == 'background' else color
+    for color_type in "color", "background":
+        color_value = background if color_type == "background" else color
         if isinstance(color_value, (tuple, list)):
             if len(color_value) != 3:
                 msg = "Invalid color value %r! (expected tuple or list with three numbers)"
                 raise ValueError(msg % color_value)
-            sequences.append(48 if color_type == 'background' else 38)
+            sequences.append(48 if color_type == "background" else 38)
             sequences.append(2)
             sequences.extend(color_value)
         elif isinstance(color_value, int):
             # Numeric values are assumed to be 256 color codes.
-            sequences.extend((
-                48 if color_type == 'background' else 38,
-                5, color_value
-            ))
+            sequences.extend((48 if color_type == "background" else 38, 5, color_value))
         elif color_value:
             # Other values are assumed to be strings containing one of the known color names.
             if color_value not in ANSI_COLOR_CODES:
                 msg = "Invalid color value %r! (expected an integer or one of the strings %s)"
-                raise ValueError(msg % (color_value, concatenate(map(repr, sorted(ANSI_COLOR_CODES)))))
+                raise ValueError(
+                    msg
+                    % (color_value, concatenate(map(repr, sorted(ANSI_COLOR_CODES))))
+                )
             # Pick the right offset for foreground versus background
             # colors and regular intensity versus bright colors.
             offset = (
                 (100 if bright else 40)
-                if color_type == 'background'
+                if color_type == "background"
                 else (90 if bright else 30)
             )
             # Combine the offset and color code into a single integer.
             sequences.append(offset + ANSI_COLOR_CODES[color_value])
     if sequences:
-        encoded = ANSI_CSI + ';'.join(map(str, sequences)) + ANSI_SGR
+        encoded = ANSI_CSI + ";".join(map(str, sequences)) + ANSI_SGR
         return readline_wrap(encoded) if readline_hints else encoded
     else:
-        return ''
+        return ""
 
 
-def ansi_width(text:str) -> int:
+def ansi_width(text: str) -> int:
     """
     Calculate the effective width of the given text (ignoring ANSI escape sequences).
 
@@ -304,7 +307,7 @@ def ansi_width(text:str) -> int:
 
 
 @args_from1(ansi_style)
-def ansi_wrap(text:str, /, **kw) -> str:
+def ansi_wrap(text: str, /, **kw) -> str:
     """
     Wrap text in ANSI escape sequences for the given color and/or style(s).
 
@@ -323,7 +326,7 @@ def ansi_wrap(text:str, /, **kw) -> str:
     start_sequence = ansi_style(**kw)
     if start_sequence:
         end_sequence = ANSI_RESET
-        if kw.get('readline_hints'):
+        if kw.get("readline_hints"):
             end_sequence = readline_wrap(end_sequence)
         return start_sequence + text + end_sequence
     else:
@@ -331,7 +334,7 @@ def ansi_wrap(text:str, /, **kw) -> str:
 
 
 @args_from1(format)
-def auto_encode(stream:TextIO, text:str, *args, **kw) -> None:
+def auto_encode(stream: TextIO, text: str, *args, **kw) -> None:
     """
     Reliably write Unicode strings to the terminal.
 
@@ -348,7 +351,7 @@ def auto_encode(stream:TextIO, text:str, *args, **kw) -> None:
     stream.write(text)
 
 
-def clean_terminal_output(text:str) -> list[str]:
+def clean_terminal_output(text: str) -> list[str]:
     """
     Clean up the terminal output of a command.
 
@@ -390,22 +393,22 @@ def clean_terminal_output(text:str) -> list[str]:
     .. _coloredlogs: https://pypi.org/project/coloredlogs
     """
     cleaned_lines = []
-    current_line = ''
+    current_line = ""
     current_position = 0
     for token in CLEAN_OUTPUT_PATTERN.split(text):
-        if token == '\r':
+        if token == "\r":
             # Seek back to the start of the current line.
             current_position = 0
-        elif token == '\b':
+        elif token == "\b":
             # Seek back one character in the current line.
             current_position = max(0, current_position - 1)
         else:
-            if token == '\n':
+            if token == "\n":
                 # Capture the current line.
                 cleaned_lines.append(current_line)
-            if token in ('\n', ANSI_ERASE_LINE):
+            if token in ("\n", ANSI_ERASE_LINE):
                 # Clear the current line.
-                current_line = ''
+                current_line = ""
                 current_position = 0
             elif token:
                 # Merge regular output into the current line.
@@ -422,7 +425,7 @@ def clean_terminal_output(text:str) -> list[str]:
     return cleaned_lines
 
 
-def connected_to_terminal(stream:Any=sys.stdout) -> bool:
+def connected_to_terminal(stream: Any = sys.stdout) -> bool:
     """
     Check if a stream is connected to a terminal.
 
@@ -433,10 +436,12 @@ def connected_to_terminal(stream:Any=sys.stdout) -> bool:
 
     See also :func:`terminal_supports_colors()`.
     """
-    if hasattr(stream, 'isatty') and callable(stream.isatty):
+    if hasattr(stream, "isatty") and callable(stream.isatty):
         res = stream.isatty()
         if not isinstance(res, bool):
-            raise TypeError("passed stream object has isatty() method that did not return a bool")
+            raise TypeError(
+                "passed stream object has isatty() method that did not return a bool"
+            )
         return res
     else:
         return False
@@ -478,14 +483,20 @@ def enable_ansi_support() -> bool:
     """
     if sys.platform == "win32" and have_windows_native_ansi_support():
         import ctypes
-        ctypes.windll.kernel32.SetConsoleMode(ctypes.windll.kernel32.GetStdHandle(-11), 7)
-        ctypes.windll.kernel32.SetConsoleMode(ctypes.windll.kernel32.GetStdHandle(-12), 7)
+
+        ctypes.windll.kernel32.SetConsoleMode(
+            ctypes.windll.kernel32.GetStdHandle(-11), 7
+        )
+        ctypes.windll.kernel32.SetConsoleMode(
+            ctypes.windll.kernel32.GetStdHandle(-12), 7
+        )
         return True
     elif on_windows():
-        if 'ANSICON' in os.environ:
+        if "ANSICON" in os.environ:
             return True
         try:
             import colorama
+
             colorama.init()
             return True
         except ImportError:
@@ -542,7 +553,9 @@ def find_terminal_size() -> tuple[int, int]:
     return DEFAULT_LINES, DEFAULT_COLUMNS
 
 
-def find_terminal_size_using_ioctl(stream:"_typeshed.FileDescriptorLike") -> tuple[int, int]:
+def find_terminal_size_using_ioctl(
+    stream: "_typeshed.FileDescriptorLike",
+) -> tuple[int, int]:
     """
     Find the terminal size using :func:`fcntl.ioctl()`.
 
@@ -557,7 +570,10 @@ def find_terminal_size_using_ioctl(stream:"_typeshed.FileDescriptorLike") -> tup
     if sys.platform == "win32":
         raise NotImplementedError("It looks like the `fcntl' module is not available!")
     else:
-        h, w, hp, wp = struct.unpack('HHHH', fcntl.ioctl(stream, termios.TIOCGWINSZ, struct.pack('HHHH', 0, 0, 0, 0)))
+        h, w, hp, wp = struct.unpack(
+            "HHHH",
+            fcntl.ioctl(stream, termios.TIOCGWINSZ, struct.pack("HHHH", 0, 0, 0, 0)),
+        )
         return h, w
 
 
@@ -570,9 +586,9 @@ def find_terminal_size_using_stty() -> tuple[int, int]:
     :raises: This function can raise exceptions but I'm not going to document
              them here, you should be using :func:`find_terminal_size()`.
     """
-    stty = subprocess.Popen(['stty', 'size'],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
+    stty = subprocess.Popen(
+        ["stty", "size"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
     stdout, _stderr = stty.communicate()
     tokens = stdout.split()
     if len(tokens) != 2:
@@ -580,7 +596,7 @@ def find_terminal_size_using_stty() -> tuple[int, int]:
     return (int(tokens[0]), int(tokens[1]))
 
 
-def get_pager_command(text:str|None=None) -> list[str]:
+def get_pager_command(text: str | None = None) -> list[str]:
     """
     Get the command to show a text on the terminal using a pager.
 
@@ -609,14 +625,14 @@ def get_pager_command(text:str|None=None) -> list[str]:
     """
     # Compose the pager command.
     if text and ANSI_CSI in text:
-        command_line = ['less', '--RAW-CONTROL-CHARS']
+        command_line = ["less", "--RAW-CONTROL-CHARS"]
     else:
-        command_line = [os.environ.get('PAGER', 'less')]
+        command_line = [os.environ.get("PAGER", "less")]
     # Pass some additional options to `less' (to make it more
     # user friendly) without breaking support for other pagers.
-    if os.path.basename(command_line[0]) == 'less':
-        command_line.append('--no-init')
-        command_line.append('--quit-if-one-screen')
+    if os.path.basename(command_line[0]) == "less":
+        command_line.append("--no-init")
+        command_line.append("--quit-if-one-screen")
     return command_line
 
 
@@ -632,7 +648,7 @@ def have_windows_native_ansi_support() -> bool:
     the answer doesn't change in the lifetime of a computer process.
     """
     if on_windows():
-        components = tuple(int(c) for c in platform.version().split('.'))
+        components = tuple(int(c) for c in platform.version().split("."))
         return components >= (10, 0, 14393)
     return False
 
@@ -649,10 +665,10 @@ def message(text, *args, **kw) -> None:
     the resulting string (followed by a newline) to :data:`sys.stderr` using
     :func:`auto_encode()`.
     """
-    auto_encode(sys.stderr, coerce_string(text) + '\n', *args, **kw)
+    auto_encode(sys.stderr, coerce_string(text) + "\n", *args, **kw)
 
 
-def output(text:object, *args:object, **kw:object) -> None:
+def output(text: object, *args: object, **kw: object) -> None:
     """
     Print a formatted message to the standard output stream.
 
@@ -663,20 +679,20 @@ def output(text:object, *args:object, **kw:object) -> None:
     the resulting string (followed by a newline) to :data:`sys.stdout` using
     :func:`auto_encode()`.
     """
-    auto_encode(sys.stdout, str(text) + '\n', *args, **kw)
+    auto_encode(sys.stdout, str(text) + "\n", *args, **kw)
 
 
-def readline_strip(expr:str) -> str:
+def readline_strip(expr: str) -> str:
     """
     Remove `readline hints`_ from a string.
 
     :param text: The text to strip (a string).
     :returns: The stripped text.
     """
-    return expr.replace('\001', '').replace('\002', '')
+    return expr.replace("\001", "").replace("\002", "")
 
 
-def readline_wrap(expr:str) -> str:
+def readline_wrap(expr: str) -> str:
     """
     Wrap an ANSI escape sequence in `readline hints`_.
 
@@ -685,10 +701,10 @@ def readline_wrap(expr:str) -> str:
 
     .. _readline hints: http://superuser.com/a/301355
     """
-    return '\001' + expr + '\002'
+    return "\001" + expr + "\002"
 
 
-def show_pager(formatted_text:str, encoding=DEFAULT_ENCODING) -> None:
+def show_pager(formatted_text: str, encoding=DEFAULT_ENCODING) -> None:
     """
     Print a large text to the terminal using a pager.
 
@@ -717,7 +733,7 @@ def show_pager(formatted_text:str, encoding=DEFAULT_ENCODING) -> None:
     output(formatted_text)
 
 
-def terminal_supports_colors(stream:Any=None) -> bool:
+def terminal_supports_colors(stream: Any = None) -> bool:
     """
     Check if a stream is connected to a terminal that supports ANSI escape sequences.
 
@@ -733,15 +749,15 @@ def terminal_supports_colors(stream:Any=None) -> bool:
     """
     if on_windows():
         # On Windows support for ANSI escape sequences is not a given.
-        have_ansicon = 'ANSICON' in os.environ
-        have_colorama = 'colorama' in sys.modules
+        have_ansicon = "ANSICON" in os.environ
+        have_colorama = "colorama" in sys.modules
         have_native_support = have_windows_native_ansi_support()
         if not (have_ansicon or have_colorama or have_native_support):
             return False
     return connected_to_terminal(stream)
 
 
-def usage(usage_text:str) -> None:
+def usage(usage_text: str) -> None:
     """
     Print a human friendly usage message to the terminal.
 
@@ -777,8 +793,8 @@ def warning(text, *args, **kw):
     """
     text = coerce_string(text)
     if terminal_supports_colors(sys.stderr):
-        text = ansi_wrap(text, color='red')
-    auto_encode(sys.stderr, text + '\n', *args, **kw)
+        text = ansi_wrap(text, color="red")
+    auto_encode(sys.stderr, text + "\n", *args, **kw)
 
 
 # Define aliases for backwards compatibility.
@@ -786,10 +802,10 @@ define_aliases(
     module_name=__name__,
     # In humanfriendly 1.31 the find_meta_variables() and format_usage()
     # functions were extracted to the new module humanfriendly.usage.
-    find_meta_variables='humanfriendly.usage.find_meta_variables',
-    format_usage='humanfriendly.usage.format_usage',
+    find_meta_variables="humanfriendly.usage.find_meta_variables",
+    format_usage="humanfriendly.usage.format_usage",
     # In humanfriendly 8.0 the html_to_ansi() function and HTMLConverter
     # class were extracted to the new module humanfriendly.terminal.html.
-    html_to_ansi='humanfriendly.terminal.html.html_to_ansi',
-    HTMLConverter='humanfriendly.terminal.html.HTMLConverter',
+    html_to_ansi="humanfriendly.terminal.html.html_to_ansi",
+    HTMLConverter="humanfriendly.terminal.html.HTMLConverter",
 )

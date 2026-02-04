@@ -21,6 +21,7 @@ does it support Unicode normalization, hence the word "simple".
 import collections
 from collections.abc import Iterable, MutableMapping
 from typing import Any, overload, TYPE_CHECKING, Final, Iterator
+
 if TYPE_CHECKING:
     from _typeshed import SupportsKeysAndGetItem
 
@@ -28,8 +29,7 @@ if TYPE_CHECKING:
 __all__ = ("CaseInsensitiveDict", "CaseInsensitiveKey")
 
 
-class CaseInsensitiveKey[T: (str, bytes)]():
-
+class CaseInsensitiveKey[T: (str, bytes)]:
     """
     Simple case insensitive dictionary key implementation.
 
@@ -41,10 +41,10 @@ class CaseInsensitiveKey[T: (str, bytes)]():
     package instead.
     """
 
-    wrapped:Final[T]
-    normalized:Final[T]
+    wrapped: Final[T]
+    normalized: Final[T]
 
-    def __init__(self, value:T) -> None:
+    def __init__(self, value: T) -> None:
         """Create a :class:`CaseInsensitiveKey` object."""
         self.wrapped = value
         self.normalized = value.lower()
@@ -61,17 +61,35 @@ class CaseInsensitiveKey[T: (str, bytes)]():
         else:
             return False
 
+
 class CaseInsensitiveDict[KT: (str, bytes), VT](MutableMapping[KT, VT]):
-    wrapped:collections.OrderedDict[CaseInsensitiveKey[KT], VT]
+    """
+    Simple case insensitive dictionary implementation (that remembers insertion order).
+
+    This class works by overriding methods that deal with dictionary keys to
+    coerce string keys to :class:`CaseInsensitiveKey` objects before calling
+    down to the regular dictionary handling methods. While intended to be
+    complete this class has not been extensively tested yet.
+    """
+
+    wrapped: collections.OrderedDict[CaseInsensitiveKey[KT], VT]
 
     @classmethod
     @overload
-    def fromkeys[T: (str, bytes)](cls, iterable: Iterable[T], value: None = None, /) -> "CaseInsensitiveDict[T, Any]": ...
+    def fromkeys[T: (str, bytes)](
+        cls, iterable: Iterable[T], value: None = None, /
+    ) -> "CaseInsensitiveDict[T, Any]": ...
+
     @classmethod
     @overload
-    def fromkeys[T: (str, bytes), V](cls, iterable: Iterable[T], value: V, /) -> "CaseInsensitiveDict[T, V]": ...
+    def fromkeys[T: (str, bytes), V](
+        cls, iterable: Iterable[T], value: V, /
+    ) -> "CaseInsensitiveDict[T, V]": ...
+
     @classmethod
-    def fromkeys[T: (str, bytes)](cls, iterable: Iterable[T], value: Any = None, /) -> "CaseInsensitiveDict[T, Any]":
+    def fromkeys[T: (str, bytes)](
+        cls, iterable: Iterable[T], value: Any = None, /
+    ) -> "CaseInsensitiveDict[T, Any]":
         res = CaseInsensitiveDict()
         for key in iterable:
             res[key] = value
@@ -79,12 +97,14 @@ class CaseInsensitiveDict[KT: (str, bytes), VT](MutableMapping[KT, VT]):
 
     @staticmethod
     @overload
-    def map_key(k:KT) -> CaseInsensitiveKey[KT]: ...
+    def map_key(k: KT) -> CaseInsensitiveKey[KT]: ...
+
     @staticmethod
     @overload
-    def map_key(k:Any) -> Any: ...
+    def map_key(k: Any) -> Any: ...
+
     @staticmethod
-    def map_key(k:Any) -> Any:
+    def map_key(k: Any) -> Any:
         if isinstance(k, str):
             return CaseInsensitiveKey(k)
         elif isinstance(k, bytes):
@@ -97,10 +117,15 @@ class CaseInsensitiveDict[KT: (str, bytes), VT](MutableMapping[KT, VT]):
         return CaseInsensitiveKey(k)
 
     @staticmethod
-    def unmap_key(k:CaseInsensitiveKey[KT]) -> KT:
+    def unmap_key(k: CaseInsensitiveKey[KT]) -> KT:
         return k.wrapped
 
-    def __init__(self, other:"SupportsKeysAndGetItem[KT, VT]|Iterable[tuple[KT, VT]]"={}, /, **kw: VT):
+    def __init__(
+        self,
+        other: "SupportsKeysAndGetItem[KT, VT]|Iterable[tuple[KT, VT]]" = {},
+        /,
+        **kw: VT,
+    ):
         """Initialize a :class:`CaseInsensitiveDict` object."""
         super().__init__()
         self.update(other, **kw)

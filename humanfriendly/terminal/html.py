@@ -17,14 +17,14 @@ from humanfriendly.text import compact_empty_lines
 from humanfriendly.terminal import ANSI_COLOR_CODES, ANSI_RESET, ansi_style
 
 # Public identifiers that require documentation.
-__all__ = ('HTMLConverter', 'html_to_ansi')
+__all__ = ("HTMLConverter", "html_to_ansi")
 
 
 class Writable(Protocol):
-    def write(self, text:str, /) -> Any: ...
+    def write(self, text: str, /) -> Any: ...
 
 
-def html_to_ansi(data:str, callback:None|Callable[[str], str]=None) -> str:
+def html_to_ansi(data: str, callback: None | Callable[[str], str] = None) -> str:
     """
     Convert HTML with simple text formatting to text with ANSI escape sequences.
 
@@ -43,8 +43,8 @@ def html_to_ansi(data:str, callback:None|Callable[[str], str]=None) -> str:
 
 
 class HTMLConverter(HTMLParser):
-    callback:None|Callable[[str], str]
-    output:StringIO|Writable
+    callback: None | Callable[[str], str]
+    output: StringIO | Writable
     """
     Convert HTML with simple text formatting to text with ANSI escape sequences.
 
@@ -126,10 +126,16 @@ class HTMLConverter(HTMLParser):
        keyword highlighting combines with the regular highlighting).
     """
 
-    BLOCK_TAGS = ('div', 'p', 'pre')
+    BLOCK_TAGS = ("div", "p", "pre")
     """The names of tags that are padded with vertical whitespace."""
 
-    def __init__(self, *args, callback:None|Callable[[str], str]=None, output:StringIO|Writable=StringIO(), **kw):
+    def __init__(
+        self,
+        *args,
+        callback: None | Callable[[str], str] = None,
+        output: StringIO | Writable = StringIO(),
+        **kw,
+    ):
         """
         Initialize an :class:`HTMLConverter` object.
 
@@ -201,7 +207,9 @@ class HTMLConverter(HTMLParser):
 
         :param value: The decimal or hexadecimal value (a string).
         """
-        self.output.write(unichr(int(name[1:], 16) if name.startswith('x') else int(name)))
+        self.output.write(
+            unichr(int(name[1:], 16) if name.startswith("x") else int(name))
+        )
 
     def handle_data(self, data):
         """
@@ -227,31 +235,44 @@ class HTMLConverter(HTMLParser):
 
         :param tag: The name of the tag (a string).
         """
-        if tag in ('a', 'b', 'code', 'del', 'em', 'i', 'ins', 'pre', 's', 'strong', 'span', 'u'):
+        if tag in (
+            "a",
+            "b",
+            "code",
+            "del",
+            "em",
+            "i",
+            "ins",
+            "pre",
+            "s",
+            "strong",
+            "span",
+            "u",
+        ):
             old_style = self.current_style
             # The following conditional isn't necessary for well formed
             # HTML but prevents raising exceptions on malformed HTML.
             if self.stack:
                 self.stack.pop(-1)
             new_style = self.current_style
-            if tag == 'a':
+            if tag == "a":
                 if self.urls_match(self.link_text, self.link_url):
                     # Don't render the URL when it's part of the link text.
                     self.emit_style(new_style)
                 else:
                     self.emit_style(new_style)
-                    self.output.write(' (')
+                    self.output.write(" (")
                     self.emit_style(old_style)
                     self.output.write(self.render_url(self.link_url))
                     self.emit_style(new_style)
-                    self.output.write(')')
+                    self.output.write(")")
             else:
                 self.emit_style(new_style)
-            if tag in ('code', 'pre'):
+            if tag in ("code", "pre"):
                 self.preformatted_text_level -= 1
         if tag in self.BLOCK_TAGS:
             # Emit an empty line after block level tags.
-            self.output.write('\n\n')
+            self.output.write("\n\n")
 
     def handle_entityref(self, name):
         """
@@ -270,48 +291,48 @@ class HTMLConverter(HTMLParser):
         """
         if tag in self.BLOCK_TAGS:
             # Emit an empty line before block level tags.
-            self.output.write('\n\n')
-        if tag == 'a':
-            self.push_styles(color='blue', bright=True, underline=True)
+            self.output.write("\n\n")
+        if tag == "a":
+            self.push_styles(color="blue", bright=True, underline=True)
             # Store the URL that the link points to for later use, so that we
             # can render the link text before the URL (with the reasoning that
             # this is the most intuitive way to present a link in a plain text
             # interface).
-            self.link_url = next((v for n, v in attrs if n == 'href'), '')
-        elif tag == 'b' or tag == 'strong':
+            self.link_url = next((v for n, v in attrs if n == "href"), "")
+        elif tag == "b" or tag == "strong":
             self.push_styles(bold=True)
-        elif tag == 'br':
-            self.output.write('\n')
-        elif tag == 'code' or tag == 'pre':
-            self.push_styles(color='yellow')
+        elif tag == "br":
+            self.output.write("\n")
+        elif tag == "code" or tag == "pre":
+            self.push_styles(color="yellow")
             self.preformatted_text_level += 1
-        elif tag == 'del' or tag == 's':
+        elif tag == "del" or tag == "s":
             self.push_styles(strike_through=True)
-        elif tag == 'em' or tag == 'i':
+        elif tag == "em" or tag == "i":
             self.push_styles(italic=True)
-        elif tag == 'ins' or tag == 'u':
+        elif tag == "ins" or tag == "u":
             self.push_styles(underline=True)
-        elif tag == 'span':
+        elif tag == "span":
             styles = {}
-            css = next((v for n, v in attrs if n == 'style'))
+            css = next((v for n, v in attrs if n == "style"))
             if css is None:
                 return
-            for rule in css.split(';'):
-                name, _, value = rule.partition(':')
+            for rule in css.split(";"):
+                name, _, value = rule.partition(":")
                 name = name.strip()
                 value = value.strip()
-                if name == 'background-color':
-                    styles['background'] = self.parse_color(value)
-                elif name == 'color':
-                    styles['color'] = self.parse_color(value)
-                elif name == 'font-style' and value == 'italic':
-                    styles['italic'] = True
-                elif name == 'font-weight' and value == 'bold':
-                    styles['bold'] = True
-                elif name == 'text-decoration' and value == 'line-through':
-                    styles['strike_through'] = True
-                elif name == 'text-decoration' and value == 'underline':
-                    styles['underline'] = True
+                if name == "background-color":
+                    styles["background"] = self.parse_color(value)
+                elif name == "color":
+                    styles["color"] = self.parse_color(value)
+                elif name == "font-style" and value == "italic":
+                    styles["italic"] = True
+                elif name == "font-weight" and value == "bold":
+                    styles["bold"] = True
+                elif name == "text-decoration" and value == "line-through":
+                    styles["strike_through"] = True
+                elif name == "text-decoration" and value == "underline":
+                    styles["underline"] = True
             self.push_styles(**styles)
 
     def normalize_url(self, url):
@@ -321,7 +342,7 @@ class HTMLConverter(HTMLParser):
         :param url: The URL to normalize (a string).
         :returns: The normalized URL (a string).
         """
-        return re.sub('^mailto:', '', url)
+        return re.sub("^mailto:", "", url)
 
     def parse_color(self, value):
         """
@@ -331,12 +352,12 @@ class HTMLConverter(HTMLParser):
         :returns: A color value supported by :func:`.ansi_style()` or :data:`None`.
         """
         # Parse an 'rgb(N,N,N)' expression.
-        if value.startswith('rgb'):
-            tokens = re.findall(r'\d+', value)
+        if value.startswith("rgb"):
+            tokens = re.findall(r"\d+", value)
             if len(tokens) == 3:
                 return tuple(map(int, tokens))
         # Parse an '#XXXXXX' expression.
-        elif value.startswith('#'):
+        elif value.startswith("#"):
             value = value[1:]
             length = len(value)
             if length == 6:
@@ -395,9 +416,9 @@ class HTMLConverter(HTMLParser):
         - Spaces are converted to ``%20``.
         - A trailing parenthesis is converted to ``%29``.
         """
-        url = re.sub('^mailto:', '', url)
-        url = re.sub(' ', '%20', url)
-        url = re.sub(r'\)$', '%29', url)
+        url = re.sub("^mailto:", "", url)
+        url = re.sub(" ", "%20", url)
+        url = re.sub(r"\)$", "%29", url)
         return url
 
     def reset(self):

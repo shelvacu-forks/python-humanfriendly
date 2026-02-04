@@ -4,7 +4,7 @@
 # Last Change: March 1, 2020
 # URL: https://humanfriendly.readthedocs.io
 
-USAGE = """
+"""
 Usage: humanfriendly [OPTIONS]
 
 Human friendly input/output (text formatting) on the command
@@ -82,10 +82,7 @@ import getopt
 import subprocess
 import sys
 import shlex
-from typing import Sequence, TYPE_CHECKING, Never
-
-if TYPE_CHECKING:
-    from _typeshed import StrOrBytesPath
+from typing import Sequence, Never
 
 # Modules included in our package.
 from humanfriendly import (
@@ -114,17 +111,17 @@ from humanfriendly.terminal.spinners import Spinner
 
 # Public identifiers that require documentation.
 __all__ = (
-    'demonstrate_256_colors',
-    'demonstrate_ansi_formatting',
-    'main',
-    'print_formatted_length',
-    'print_formatted_number',
-    'print_formatted_size',
-    'print_formatted_table',
-    'print_formatted_timespan',
-    'print_parsed_length',
-    'print_parsed_size',
-    'run_command',
+    "demonstrate_256_colors",
+    "demonstrate_ansi_formatting",
+    "main",
+    "print_formatted_length",
+    "print_formatted_number",
+    "print_formatted_size",
+    "print_formatted_table",
+    "print_formatted_timespan",
+    "print_parsed_length",
+    "print_parsed_size",
+    "run_command",
 )
 
 
@@ -132,52 +129,67 @@ def main():
     """Command line interface for the ``humanfriendly`` program."""
     enable_ansi_support()
     try:
-        options, arguments = getopt.getopt(sys.argv[1:], 'cd:l:n:s:bt:h', [
-            'run-command', 'format-table', 'delimiter=', 'format-length=',
-            'format-number=', 'format-size=', 'binary', 'format-timespan=',
-            'parse-length=', 'parse-size=', 'demo', 'help',
-        ])
+        options, arguments = getopt.getopt(
+            sys.argv[1:],
+            "cd:l:n:s:bt:h",
+            [
+                "run-command",
+                "format-table",
+                "delimiter=",
+                "format-length=",
+                "format-number=",
+                "format-size=",
+                "binary",
+                "format-timespan=",
+                "parse-length=",
+                "parse-size=",
+                "demo",
+                "help",
+            ],
+        )
     except Exception as e:
         warning("Error: %s", e)
         sys.exit(1)
     actions = []
     delimiter = None
     should_format_table = False
-    binary = any(o in ('-b', '--binary') for o, _ in options)
+    binary = any(o in ("-b", "--binary") for o, _ in options)
     for option, value in options:
-        if option in ('-d', '--delimiter'):
+        if option in ("-d", "--delimiter"):
             delimiter = value
-        elif option == '--parse-size':
+        elif option == "--parse-size":
             actions.append(functools.partial(print_parsed_size, value))
-        elif option == '--parse-length':
+        elif option == "--parse-length":
             actions.append(functools.partial(print_parsed_length, value))
-        elif option in ('-c', '--run-command'):
+        elif option in ("-c", "--run-command"):
             actions.append(functools.partial(run_command, arguments))
-        elif option in ('-l', '--format-length'):
+        elif option in ("-l", "--format-length"):
             actions.append(functools.partial(print_formatted_length, value))
-        elif option in ('-n', '--format-number'):
+        elif option in ("-n", "--format-number"):
             actions.append(functools.partial(print_formatted_number, value))
-        elif option in ('-s', '--format-size'):
+        elif option in ("-s", "--format-size"):
             actions.append(functools.partial(print_formatted_size, value, binary))
-        elif option == '--format-table':
+        elif option == "--format-table":
             should_format_table = True
-        elif option in ('-t', '--format-timespan'):
+        elif option in ("-t", "--format-timespan"):
             actions.append(functools.partial(print_formatted_timespan, value))
-        elif option == '--demo':
+        elif option == "--demo":
             actions.append(demonstrate_ansi_formatting)
-        elif option in ('-h', '--help'):
-            usage(USAGE)
+        elif option in ("-h", "--help"):
+            assert __doc__ is not None
+            usage(__doc__)
             return
     if should_format_table:
         actions.append(functools.partial(print_formatted_table, delimiter))
     if not actions:
-        usage(USAGE)
+        assert __doc__ is not None
+        usage(__doc__)
         return
     for partial in actions:
         partial()
 
 
-def run_command(command_line:Sequence[str]) -> Never:
+def run_command(command_line: Sequence[str]) -> Never:
     """Run an external command and show a spinner while the command is running."""
     timer = Timer()
     spinner_label = "Waiting for command: %s" % " ".join(map(shlex.quote, command_line))
@@ -191,25 +203,25 @@ def run_command(command_line:Sequence[str]) -> Never:
     sys.exit(process.returncode)
 
 
-def print_formatted_length(value:str) -> None:
+def print_formatted_length(value: str) -> None:
     """Print a human readable length."""
-    if '.' in value:
+    if "." in value:
         output(format_length(float(value)))
     else:
         output(format_length(int(value)))
 
 
-def print_formatted_number(value:str) -> None:
+def print_formatted_number(value: str) -> None:
     """Print large numbers in a human readable format."""
     output(format_number(float(value)))
 
 
-def print_formatted_size(value:str, binary:bool) -> None:
+def print_formatted_size(value: str, binary: bool) -> None:
     """Print a human readable size."""
     output(format_size(int(value), binary=binary))
 
 
-def print_formatted_table(delimiter:str|None) -> None:
+def print_formatted_table(delimiter: str | None) -> None:
     """Read tabular data from standard input and print a table."""
     data = []
     for line in sys.stdin:
@@ -218,17 +230,17 @@ def print_formatted_table(delimiter:str|None) -> None:
     output(format_pretty_table(data))
 
 
-def print_formatted_timespan(value:str) -> None:
+def print_formatted_timespan(value: str) -> None:
     """Print a human readable timespan."""
     output(format_timespan(float(value)))
 
 
-def print_parsed_length(value:str) -> None:
+def print_parsed_length(value: str) -> None:
     """Parse a human readable length and print the number of metres."""
     output(parse_length(value))
 
 
-def print_parsed_size(value:str) -> None:
+def print_parsed_size(value: str) -> None:
     """Parse a human readable data size and print the number of bytes."""
     output(parse_size(value))
 
@@ -236,52 +248,61 @@ def print_parsed_size(value:str) -> None:
 def demonstrate_ansi_formatting() -> None:
     """Demonstrate the use of ANSI escape sequences."""
     # First we demonstrate the supported text styles.
-    output('%s', ansi_wrap('Text styles:', bold=True))
-    styles = ['normal', 'bright']
+    output("%s", ansi_wrap("Text styles:", bold=True))
+    styles = ["normal", "bright"]
     styles.extend(ANSI_TEXT_STYLES.keys())
     for style_name in sorted(styles):
-        options:dict[str, object] = dict(color=HIGHLIGHT_COLOR)
-        if style_name != 'normal':
+        options: dict[str, object] = dict(color=HIGHLIGHT_COLOR)
+        if style_name != "normal":
             options[style_name] = True
-        style_label = style_name.replace('_', ' ').capitalize()
-        output(' - %s', ansi_wrap(style_label, **options)) # type: ignore
+        style_label = style_name.replace("_", " ").capitalize()
+        output(" - %s", ansi_wrap(style_label, **options))  # type: ignore
     # Now we demonstrate named foreground and background colors.
-    for color_type, color_label in (('color', 'Foreground colors'),
-                                    ('background', 'Background colors')):
+    for color_type, color_label in (
+        ("color", "Foreground colors"),
+        ("background", "Background colors"),
+    ):
         intensities = [
-            ('normal', dict()),
-            ('bright', dict(bright=True)),
+            ("normal", dict()),
+            ("bright", dict(bright=True)),
         ]
-        if color_type != 'background':
-            intensities.insert(0, ('faint', dict(faint=True)))
-        output('\n%s' % ansi_wrap('%s:' % color_label, bold=True))
-        output(format_smart_table([
-            [color_name] + [
-                ansi_wrap(
-                    'XXXXXX' if color_type != 'background' else (' ' * 6),
-                    **dict(list(kw.items()) + [(color_type, color_name)])
-                ) for label, kw in intensities
-            ] for color_name in sorted(ANSI_COLOR_CODES.keys())
-        ], column_names=['Color'] + [
-            label.capitalize() for label, kw in intensities
-        ]))
+        if color_type != "background":
+            intensities.insert(0, ("faint", dict(faint=True)))
+        output("\n%s" % ansi_wrap("%s:" % color_label, bold=True))
+        output(
+            format_smart_table(
+                [
+                    [color_name]
+                    + [
+                        ansi_wrap(
+                            "XXXXXX" if color_type != "background" else (" " * 6),
+                            **dict(list(kw.items()) + [(color_type, color_name)]),
+                        )
+                        for label, kw in intensities
+                    ]
+                    for color_name in sorted(ANSI_COLOR_CODES.keys())
+                ],
+                column_names=["Color"]
+                + [label.capitalize() for label, kw in intensities],
+            )
+        )
     # Demonstrate support for 256 colors as well.
-    demonstrate_256_colors(0, 7, 'standard colors')
-    demonstrate_256_colors(8, 15, 'high-intensity colors')
-    demonstrate_256_colors(16, 231, '216 colors')
-    demonstrate_256_colors(232, 255, 'gray scale colors')
+    demonstrate_256_colors(0, 7, "standard colors")
+    demonstrate_256_colors(8, 15, "high-intensity colors")
+    demonstrate_256_colors(16, 231, "216 colors")
+    demonstrate_256_colors(232, 255, "gray scale colors")
 
 
-def demonstrate_256_colors(i:int, j:int, group:str|None=None):
+def demonstrate_256_colors(i: int, j: int, group: str | None = None):
     """Demonstrate 256 color mode support."""
     # Generate the label.
-    label = '256 color mode'
+    label = "256 color mode"
     if group:
-        label += ' (%s)' % group
-    output('\n' + ansi_wrap('%s:' % label, bold=True))
+        label += " (%s)" % group
+    output("\n" + ansi_wrap("%s:" % label, bold=True))
     # Generate a simple rendering of the colors in the requested range and
     # check if it will fit on a single line (given the terminal's width).
-    single_line = ''.join(' ' + ansi_wrap(str(n), color=n) for n in range(i, j + 1))
+    single_line = "".join(" " + ansi_wrap(str(n), color=n) for n in range(i, j + 1))
     lines, columns = find_terminal_size()
     if columns >= len(ansi_strip(single_line)):
         output(single_line)
@@ -291,5 +312,8 @@ def demonstrate_256_colors(i:int, j:int, group:str|None=None):
         width = len(str(j)) + 1
         colors_per_line = int(columns / width)
         colors = [ansi_wrap(str(n).rjust(width), color=n) for n in range(i, j + 1)]
-        blocks = [colors[n:n + colors_per_line] for n in range(0, len(colors), colors_per_line)]
-        output('\n'.join(''.join(b) for b in blocks))
+        blocks = [
+            colors[n : n + colors_per_line]
+            for n in range(0, len(colors), colors_per_line)
+        ]
+        output("\n".join("".join(b) for b in blocks))

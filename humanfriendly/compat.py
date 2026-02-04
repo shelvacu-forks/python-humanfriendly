@@ -43,20 +43,20 @@ code that is compatible with Python 2 and Python 3.
 """
 
 __all__ = (
-    'HTMLParser',
-    'StringIO',
-    'basestring',
-    'coerce_string',
-    'interactive_prompt',
-    'is_string',
-    'is_unicode',
-    'monotonic',
-    'name2codepoint',
-    'on_macos',
-    'on_windows',
-    'unichr',
-    'unicode',
-    'which',
+    "HTMLParser",
+    "StringIO",
+    "basestring",
+    "coerce_string",
+    "interactive_prompt",
+    "is_string",
+    "is_unicode",
+    "monotonic",
+    "name2codepoint",
+    "on_macos",
+    "on_windows",
+    "unichr",
+    "unicode",
+    "which",
 )
 
 # Standard library modules.
@@ -109,7 +109,7 @@ def on_macos():
 
     :returns: :data:`True` if running MacOS, :data:`False` otherwise.
     """
-    return sys.platform.startswith('darwin')
+    return sys.platform.startswith("darwin")
 
 
 def on_windows():
@@ -118,4 +118,4 @@ def on_windows():
 
     :returns: :data:`True` if running Windows, :data:`False` otherwise.
     """
-    return sys.platform.startswith('win')
+    return sys.platform.startswith("win")

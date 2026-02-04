@@ -6,37 +6,46 @@
 
 """Simple function decorators to make Python programming easier."""
 
-
 # Standard library modules.
 import functools
 from typing import ParamSpec, TypeVar, TypeVarTuple, Concatenate
 from collections.abc import Callable
 
 # Public identifiers that require documentation.
-__all__ = ('RESULTS_ATTRIBUTE', 'cached', 'args_from1', 'args_from0')
+__all__ = ("RESULTS_ATTRIBUTE", "cached", "args_from1", "args_from0")
 
-RESULTS_ATTRIBUTE = 'cached_results'
+RESULTS_ATTRIBUTE = "cached_results"
 """The name of the property used to cache the return values of functions (a string)."""
 
-PBase = ParamSpec('PBase')
-Arg = TypeVar('Arg')
-Args = TypeVarTuple('Args')
-Ret = TypeVar('Ret')
+PBase = ParamSpec("PBase")
+Arg = TypeVar("Arg")
+Args = TypeVarTuple("Args")
+Ret = TypeVar("Ret")
 
-def args_from1(_fn_for_base_args: Callable[PBase, object]) -> Callable[[Callable[Concatenate[Arg, PBase], Ret]], Callable[Concatenate[Arg, PBase], Ret]]:
-    def wrapper(wrapped_fn: Callable[Concatenate[Arg, PBase], Ret]) -> Callable[Concatenate[Arg, PBase], Ret]:
+
+def args_from1(
+    _fn_for_base_args: Callable[PBase, object],
+) -> Callable[
+    [Callable[Concatenate[Arg, PBase], Ret]], Callable[Concatenate[Arg, PBase], Ret]
+]:
+    def wrapper(
+        wrapped_fn: Callable[Concatenate[Arg, PBase], Ret],
+    ) -> Callable[Concatenate[Arg, PBase], Ret]:
         return wrapped_fn
+
     return wrapper
 
 
-def args_from0(_fn_for_base_args: Callable[PBase, object]) -> Callable[[Callable[PBase, Ret]], Callable[PBase, Ret]]:
+def args_from0(
+    _fn_for_base_args: Callable[PBase, object],
+) -> Callable[[Callable[PBase, Ret]], Callable[PBase, Ret]]:
     def wrapper(wrapped_fn: Callable[PBase, Ret]) -> Callable[PBase, Ret]:
         return wrapped_fn
+
     return wrapper
 
 
-
-def cached[T](function:Callable[[], T]) -> Callable[[], T]:
+def cached[T](function: Callable[[], T]) -> Callable[[], T]:
     """
     Rudimentary caching decorator for functions.
 
@@ -52,6 +61,7 @@ def cached[T](function:Callable[[], T]) -> Callable[[], T]:
               arguments at all would imply that the cache is parametrized on
               function arguments, which is not currently the case.
     """
+
     @functools.wraps(function)
     def wrapper():
         try:
@@ -60,4 +70,5 @@ def cached[T](function:Callable[[], T]) -> Callable[[], T]:
             result = function()
             setattr(wrapper, RESULTS_ATTRIBUTE, result)
             return result
+
     return wrapper

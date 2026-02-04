@@ -116,15 +116,24 @@ _T_contra = TypeVar("_T_contra", contravariant=True)
 
 class Writer(Protocol[_T_contra]):
     __slots__ = ()
+
     def write(self, data: _T_contra, /) -> int: ...
 
 
 class Spinner:
-
     """Show a spinner on the terminal as a simple means of feedback to the user."""
 
-    @deprecated_args('label', 'total', 'stream', 'interactive', 'timer')
-    def __init__(self, label:str|None=None, total:int|None=None, stream:Writer[str]=sys.stderr, interactive:bool|None = None, timer:Timer|None=None, interval:float|int=MINIMUM_INTERVAL, glyphs:list[str]=GLYPHS):
+    @deprecated_args("label", "total", "stream", "interactive", "timer")
+    def __init__(
+        self,
+        label: str | None = None,
+        total: int | None = None,
+        stream: Writer[str] = sys.stderr,
+        interactive: bool | None = None,
+        timer: Timer | None = None,
+        interval: float | int = MINIMUM_INTERVAL,
+        glyphs: list[str] = GLYPHS,
+    ):
         """
         Initialize a :class:`Spinner` object.
 
@@ -178,12 +187,12 @@ class Spinner:
         # Try to automatically discover whether the stream is connected to
         # a terminal, but don't fail if no isatty() method is available.
         if self.interactive is None:
-            if hasattr(self.stream, 'isatty'):
-                self.interactive = self.stream.isatty() # type: ignore
+            if hasattr(self.stream, "isatty"):
+                self.interactive = self.stream.isatty()  # type: ignore
             else:
                 self.interactive = False
 
-    def step(self, progress:int=0, label:str|None=None):
+    def step(self, progress: int = 0, label: str | None = None):
         """
         Advance the spinner by one step and redraw it.
 
@@ -261,7 +270,6 @@ class Spinner:
 
 
 class AutomaticSpinner:
-
     """
     Show a spinner on the terminal that automatically starts animating.
 
@@ -283,7 +291,7 @@ class AutomaticSpinner:
     time.
     """
 
-    def __init__(self, label:str, show_time:bool=True):
+    def __init__(self, label: str, show_time: bool = True):
         """
         Initialize an automatic spinner.
 

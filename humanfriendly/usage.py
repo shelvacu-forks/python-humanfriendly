@@ -48,13 +48,13 @@ from humanfriendly.text import dedent, split_paragraphs, trim_empty_lines
 
 # Public identifiers that require documentation.
 __all__ = (
-    'find_meta_variables',
-    'format_usage',
-    'import_module',  # previously exported (backwards compatibility)
-    'inject_usage',
-    'parse_usage',
-    'render_usage',
-    'USAGE_MARKER',
+    "find_meta_variables",
+    "format_usage",
+    "import_module",  # previously exported (backwards compatibility)
+    "inject_usage",
+    "parse_usage",
+    "render_usage",
+    "USAGE_MARKER",
 )
 
 USAGE_MARKER = "Usage:"
@@ -64,7 +64,8 @@ START_OF_OPTIONS_MARKER = "Supported options:"
 """The string that marks the start of the documented command line options."""
 
 # Compiled regular expression used to tokenize usage messages.
-USAGE_PATTERN = re.compile(r'''
+USAGE_PATTERN = re.compile(
+    r"""
     # Make sure whatever we're matching isn't preceded by a non-whitespace
     # character.
     (?<!\S)
@@ -81,16 +82,18 @@ USAGE_PATTERN = re.compile(r'''
         # Might be a meta variable (usage() will figure it out).
         [A-Z][A-Z0-9_]+
     )
-''', re.VERBOSE)
+""",
+    re.VERBOSE,
+)
 
 # Compiled regular expression used to recognize options.
-OPTION_PATTERN = re.compile(r'^(-\w|--\w+(-\w+)*(=\S+)?)$')
+OPTION_PATTERN = re.compile(r"^(-\w|--\w+(-\w+)*(=\S+)?)$")
 
 # Initialize a logger for this module.
 logger = logging.getLogger(__name__)
 
 
-def format_usage(usage_text:str) -> str:
+def format_usage(usage_text: str) -> str:
     """
     Highlight special items in a usage message.
 
@@ -110,6 +113,7 @@ def format_usage(usage_text:str) -> str:
     # Ugly workaround to avoid circular import errors due to interdependencies
     # between the humanfriendly.terminal and humanfriendly.usage modules.
     from humanfriendly.terminal import ansi_wrap, HIGHLIGHT_COLOR
+
     formatted_lines = []
     meta_variables = find_meta_variables(usage_text)
     for line in usage_text.strip().splitlines(True):
@@ -118,14 +122,17 @@ def format_usage(usage_text:str) -> str:
             formatted_lines.append(ansi_wrap(line, color=HIGHLIGHT_COLOR))
         else:
             # Highlight options, meta variables and environment variables.
-            formatted_lines.append(replace_special_tokens(
-                line, meta_variables,
-                lambda token: ansi_wrap(token, color=HIGHLIGHT_COLOR),
-            ))
-    return ''.join(formatted_lines)
+            formatted_lines.append(
+                replace_special_tokens(
+                    line,
+                    meta_variables,
+                    lambda token: ansi_wrap(token, color=HIGHLIGHT_COLOR),
+                )
+            )
+    return "".join(formatted_lines)
 
 
-def find_meta_variables(usage_text:str) -> list[str]:
+def find_meta_variables(usage_text: str) -> list[str]:
     """
     Find the meta variables in the given usage message.
 
@@ -140,14 +147,14 @@ def find_meta_variables(usage_text:str) -> list[str]:
     meta_variables = set()
     for match in USAGE_PATTERN.finditer(usage_text):
         token = match.group(0)
-        if token.startswith('-'):
-            option, _, value = token.partition('=')
+        if token.startswith("-"):
+            option, _, value = token.partition("=")
             if value:
                 meta_variables.add(value)
     return list(meta_variables)
 
 
-def parse_usage(text:str) -> tuple[list[str], list[str]]:
+def parse_usage(text: str) -> tuple[list[str], list[str]]:
     """
     Parse a usage message by inferring its structure (and making some assumptions :-).
 
@@ -204,7 +211,7 @@ def parse_usage(text:str) -> tuple[list[str], list[str]]:
     # Get the paragraphs that are part of the introduction.
     while paragraphs:
         # Check whether we've found the end of the introduction.
-        end_of_intro = (paragraphs[0] == START_OF_OPTIONS_MARKER)
+        end_of_intro = paragraphs[0] == START_OF_OPTIONS_MARKER
         # Append the current paragraph to the introduction.
         introduction.append(paragraphs.pop(0))
         # Stop after we've processed the complete introduction.
@@ -220,19 +227,23 @@ def parse_usage(text:str) -> tuple[list[str], list[str]]:
             # command line option. We split on a comma followed by a space so
             # that our parsing doesn't trip up when the label used for an
             # option's value contains commas.
-            tokens = [t.strip() for t in re.split(r',\s', paragraphs[0]) if t and not t.isspace()]
+            tokens = [
+                t.strip()
+                for t in re.split(r",\s", paragraphs[0])
+                if t and not t.isspace()
+            ]
             if all(OPTION_PATTERN.match(t) for t in tokens):
                 break
             else:
                 description.append(paragraphs.pop(0))
         # Join the description's paragraphs back together so we can remove
         # common leading indentation.
-        documented_options.append(dedent('\n\n'.join(description)))
+        documented_options.append(dedent("\n\n".join(description)))
     logger.debug("Parsed options: %s", documented_options)
     return introduction, documented_options
 
 
-def render_usage(text:str) -> str:
+def render_usage(text: str) -> str:
     """
     Reformat a command line program's usage message to reStructuredText_.
 
@@ -243,30 +254,42 @@ def render_usage(text:str) -> str:
     introduction, options = parse_usage(text)
     output = [render_paragraph(p, meta_variables) for p in introduction]
     if options:
-        output.append('\n'.join([
-            '.. csv-table::',
-            '   :header: Option, Description',
-            '   :widths: 30, 70',
-            '',
-        ]))
+        output.append(
+            "\n".join(
+                [
+                    ".. csv-table::",
+                    "   :header: Option, Description",
+                    "   :widths: 30, 70",
+                    "",
+                ]
+            )
+        )
         csv_buffer = StringIO()
         csv_writer = csv.writer(csv_buffer)
         while options:
             variants = options.pop(0)
             description = options.pop(0)
-            csv_writer.writerow([
-                render_paragraph(variants, meta_variables),
-                ('\n\n'.join(render_paragraph(p, meta_variables) for p in split_paragraphs(description))).rstrip(),
-            ])
+            csv_writer.writerow(
+                [
+                    render_paragraph(variants, meta_variables),
+                    (
+                        "\n\n".join(
+                            render_paragraph(p, meta_variables)
+                            for p in split_paragraphs(description)
+                        )
+                    ).rstrip(),
+                ]
+            )
         csv_lines = csv_buffer.getvalue().splitlines()
-        output.append('\n'.join('   %s' % line for line in csv_lines))
+        output.append("\n".join("   %s" % line for line in csv_lines))
     logger.debug("Rendered output: %s", output)
-    return '\n\n'.join(trim_empty_lines(o) for o in output)
+    return "\n\n".join(trim_empty_lines(o) for o in output)
 
 
 try:
-    import cog # type: ignore[reportMissingImports]
-    def inject_usage(module_name:str) -> None:
+    import cog  # type: ignore[reportMissingImports]
+
+    def inject_usage(module_name: str) -> None:
         """
         Use cog_ to inject a usage message into a reStructuredText_ file.
 
@@ -305,25 +328,25 @@ except ImportError:
     pass
 
 
-def render_paragraph(paragraph:str, meta_variables:list[str]) -> str:
+def render_paragraph(paragraph: str, meta_variables: list[str]) -> str:
     # Reformat the "Usage:" line to highlight "Usage:" in bold and show the
     # remainder of the line as pre-formatted text.
     if paragraph.startswith(USAGE_MARKER):
         tokens = paragraph.split()
-        return "**%s** `%s`" % (tokens[0], ' '.join(tokens[1:]))
+        return "**%s** `%s`" % (tokens[0], " ".join(tokens[1:]))
     # Reformat the "Supported options:" line to highlight it in bold.
-    if paragraph == 'Supported options:':
+    if paragraph == "Supported options:":
         return "**%s**" % paragraph
     # Reformat shell transcripts into code blocks.
-    if re.match(r'^\s*\$\s+\S', paragraph):
+    if re.match(r"^\s*\$\s+\S", paragraph):
         # Split the paragraph into lines.
         lines = paragraph.splitlines()
         # Check if the paragraph is already indented.
         if not paragraph[0].isspace():
             # If the paragraph isn't already indented we'll indent it now.
-            lines = ['  %s' % line for line in lines]
-        lines.insert(0, '.. code-block:: sh')
-        lines.insert(1, '')
+            lines = ["  %s" % line for line in lines]
+        lines.insert(0, ".. code-block:: sh")
+        lines.insert(1, "")
         return "\n".join(lines)
     # The following reformatting applies only to paragraphs which are not
     # indented. Yes this is a hack - for now we assume that indented paragraphs
@@ -332,25 +355,31 @@ def render_paragraph(paragraph:str, meta_variables:list[str]) -> str:
         # Change UNIX style `quoting' so it doesn't trip up DocUtils.
         paragraph = re.sub("`(.+?)'", r'"\1"', paragraph)
         # Escape asterisks.
-        paragraph = paragraph.replace('*', r'\*')
+        paragraph = paragraph.replace("*", r"\*")
         # Reformat inline tokens.
         paragraph = replace_special_tokens(
-            paragraph, meta_variables,
-            lambda token: '``%s``' % token,
+            paragraph,
+            meta_variables,
+            lambda token: "``%s``" % token,
         )
     return paragraph
 
 
-def replace_special_tokens(text:str, meta_variables:list[str], replace_fn):
-    return USAGE_PATTERN.sub(functools.partial(
-        replace_tokens_callback,
-        meta_variables=meta_variables,
-        replace_fn=replace_fn
-    ), text)
+def replace_special_tokens(text: str, meta_variables: list[str], replace_fn):
+    return USAGE_PATTERN.sub(
+        functools.partial(
+            replace_tokens_callback,
+            meta_variables=meta_variables,
+            replace_fn=replace_fn,
+        ),
+        text,
+    )
 
 
-def replace_tokens_callback(match:re.Match, meta_variables:list[str], replace_fn:Callable[[str], str]) -> str:
+def replace_tokens_callback(
+    match: re.Match, meta_variables: list[str], replace_fn: Callable[[str], str]
+) -> str:
     token = match.group(0)
-    if not (re.match('^[A-Z][A-Z0-9_]+$', token) and token not in meta_variables):
+    if not (re.match("^[A-Z][A-Z0-9_]+$", token) and token not in meta_variables):
         token = replace_fn(token)
     return token

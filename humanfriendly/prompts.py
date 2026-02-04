@@ -35,15 +35,15 @@ from humanfriendly.decorators import args_from0
 
 # Public identifiers that require documentation.
 __all__ = (
-    'MAX_ATTEMPTS',
-    'TooManyInvalidReplies',
-    'logger',
-    'prepare_friendly_prompts',
-    'prepare_prompt_text',
-    'prompt_for_choice',
-    'prompt_for_confirmation',
-    'prompt_for_input',
-    'retry_limit',
+    "MAX_ATTEMPTS",
+    "TooManyInvalidReplies",
+    "logger",
+    "prepare_friendly_prompts",
+    "prepare_prompt_text",
+    "prompt_for_choice",
+    "prompt_for_confirmation",
+    "prompt_for_input",
+    "retry_limit",
 )
 
 MAX_ATTEMPTS = 10
@@ -53,7 +53,9 @@ MAX_ATTEMPTS = 10
 logger = logging.getLogger(__name__)
 
 
-def prompt_for_confirmation(question:str, default:bool|None=None, padding:bool=True) -> bool|None:
+def prompt_for_confirmation(
+    question: str, default: bool | None = None, padding: bool = True
+) -> bool | None:
     """
     Prompt the user for confirmation.
 
@@ -96,30 +98,47 @@ def prompt_for_confirmation(question:str, default:bool|None=None, padding:bool=T
     hint = "[Y/n]" if default else "[y/N]" if default is not None else "[y/n]"
     prompt_text += " %s " % prepare_prompt_text(hint, color=HIGHLIGHT_COLOR)
     # Loop until a valid response is given.
-    logger.debug("Requesting interactive confirmation from terminal: %r", ansi_strip(prompt_text).rstrip())
+    logger.debug(
+        "Requesting interactive confirmation from terminal: %r",
+        ansi_strip(prompt_text).rstrip(),
+    )
     for attempt in retry_limit():
-        reply = prompt_for_input(prompt_text, '', padding=padding, strip=True)
-        if reply.lower() in ('y', 'yes'):
+        reply = prompt_for_input(prompt_text, "", padding=padding, strip=True)
+        if reply.lower() in ("y", "yes"):
             logger.debug("Confirmation granted by reply (%r).", reply)
             return True
-        elif reply.lower() in ('n', 'no'):
+        elif reply.lower() in ("n", "no"):
             logger.debug("Confirmation denied by reply (%r).", reply)
             return False
         elif (not reply) and default is not None:
-            logger.debug("Default choice selected by empty reply (%r).",
-                         "granted" if default else "denied")
+            logger.debug(
+                "Default choice selected by empty reply (%r).",
+                "granted" if default else "denied",
+            )
             return default
         else:
-            details = ("the text '%s' is not recognized" % reply
-                       if reply else "there's no default choice")
-            logger.debug("Got %s reply (%s), retrying (%i/%i) ..",
-                         "invalid" if reply else "empty", details,
-                         attempt, MAX_ATTEMPTS)
-            warning("{indent}Error: Please enter 'yes' or 'no' ({details}).",
-                    indent=' ' if padding else '', details=details)
+            details = (
+                "the text '%s' is not recognized" % reply
+                if reply
+                else "there's no default choice"
+            )
+            logger.debug(
+                "Got %s reply (%s), retrying (%i/%i) ..",
+                "invalid" if reply else "empty",
+                details,
+                attempt,
+                MAX_ATTEMPTS,
+            )
+            warning(
+                "{indent}Error: Please enter 'yes' or 'no' ({details}).",
+                indent=" " if padding else "",
+                details=details,
+            )
 
 
-def prompt_for_choice(choices:Sequence[str], default:str|None=None, padding:bool=True) -> str|None:
+def prompt_for_choice(
+    choices: Sequence[str], default: str | None = None, padding: bool = True
+) -> str | None:
     """
     Prompt the user to select a choice from a group of options.
 
@@ -167,38 +186,49 @@ def prompt_for_choice(choices:Sequence[str], default:str|None=None, padding:bool
     Enter your choice as a number or unique substring (Control-C aborts): first
     'first option'
     """
-    indent = ' ' if padding else ''
+    indent = " " if padding else ""
     # Make sure we can use 'choices' more than once (i.e. not a generator).
     choices = list(choices)
     if len(choices) == 1:
         # If there's only one option there's no point in prompting the user.
-        logger.debug("Skipping interactive prompt because there's only option (%r).", choices[0])
+        logger.debug(
+            "Skipping interactive prompt because there's only option (%r).", choices[0]
+        )
         return choices[0]
     elif not choices:
         # We can't render a choice prompt without any options.
         raise ValueError("Can't prompt for choice without any options!")
     # Generate the prompt text.
-    prompt_text = ('\n\n' if padding else '\n').join([
-        # Present the available choices in a user friendly way.
-        "\n".join([
-            (u" %i. %s" % (i, choice)) + (" (default choice)" if choice == default else "")
-            for i, choice in enumerate(choices, start=1)
-        ]),
-        # Instructions for the user.
-        "Enter your choice as a number or unique substring (Control-C aborts): ",
-    ])
+    prompt_text = ("\n\n" if padding else "\n").join(
+        [
+            # Present the available choices in a user friendly way.
+            "\n".join(
+                [
+                    (" %i. %s" % (i, choice))
+                    + (" (default choice)" if choice == default else "")
+                    for i, choice in enumerate(choices, start=1)
+                ]
+            ),
+            # Instructions for the user.
+            "Enter your choice as a number or unique substring (Control-C aborts): ",
+        ]
+    )
     prompt_text = prepare_prompt_text(prompt_text, bold=True)
     # Loop until a valid choice is made.
-    logger.debug(f"Requesting interactive choice on terminal (options are {choices!r}) ..")
+    logger.debug(
+        f"Requesting interactive choice on terminal (options are {choices!r}) .."
+    )
     for attempt in retry_limit():
-        reply = prompt_for_input(prompt_text, '', padding=padding, strip=True)
+        reply = prompt_for_input(prompt_text, "", padding=padding, strip=True)
         if not reply and default is not None:
             logger.debug("Default choice selected by empty reply (%r).", default)
             return default
         elif reply.isdigit():
             index = int(reply) - 1
             if 0 <= index < len(choices):
-                logger.debug("Option (%r) selected by numeric reply (%s).", choices[index], reply)
+                logger.debug(
+                    "Option (%r) selected by numeric reply (%s).", choices[index], reply
+                )
                 return choices[index]
         # Check for substring matches.
         matches = []
@@ -214,29 +244,52 @@ def prompt_for_choice(choices:Sequence[str], default:str|None=None, padding:bool
                 matches.append(choice)
         if len(matches) == 1:
             # If a single choice was matched we return it.
-            logger.debug("Option (%r) selected by reply (substring match on %r).", matches[0], reply)
+            logger.debug(
+                "Option (%r) selected by reply (substring match on %r).",
+                matches[0],
+                reply,
+            )
             return matches[0]
         else:
             # Give the user a hint about what went wrong.
             if matches:
-                details = format("text '%s' matches more than one choice: %s", reply, concatenate(matches))
+                details = format(
+                    "text '%s' matches more than one choice: %s",
+                    reply,
+                    concatenate(matches),
+                )
             elif reply.isdigit():
                 details = format("number %i is not a valid choice", int(reply))
             elif reply and not reply.isspace():
                 details = format("text '%s' doesn't match any choices", reply)
             else:
                 details = "there's no default choice"
-            logger.debug("Got %s reply (%s), retrying (%i/%i) ..",
-                         "invalid" if reply else "empty", details,
-                         attempt, MAX_ATTEMPTS)
+            logger.debug(
+                "Got %s reply (%s), retrying (%i/%i) ..",
+                "invalid" if reply else "empty",
+                details,
+                attempt,
+                MAX_ATTEMPTS,
+            )
             warning("%sError: Invalid input (%s).", indent, details)
 
 
 @overload
-def prompt_for_input(question:str, /, *, padding:bool=True, strip:bool=True) -> str|None: ...
+def prompt_for_input(
+    question: str, /, *, padding: bool = True, strip: bool = True
+) -> str | None: ...
 @overload
-def prompt_for_input(question:str, /, default:str, *, padding:bool=True, strip:bool=True) -> str: ...
-def prompt_for_input(question:str, /, default:str|None=None, *, padding:bool=True, strip:bool=True) -> str|None:
+def prompt_for_input(
+    question: str, /, default: str, *, padding: bool = True, strip: bool = True
+) -> str: ...
+def prompt_for_input(
+    question: str,
+    /,
+    default: str | None = None,
+    *,
+    padding: bool = True,
+    strip: bool = True,
+) -> str | None:
     """
     Prompt the user for input (free form text).
 
@@ -268,8 +321,8 @@ def prompt_for_input(question:str, /, default:str|None=None, *, padding:bool=Tru
     try:
         # Prefix an empty line to the text and indent by one space?
         if padding:
-            question = '\n' + question
-            question = question.replace('\n', '\n ')
+            question = "\n" + question
+            question = question.replace("\n", "\n ")
         # Render the prompt and wait for the user's reply.
         try:
             reply = interactive_prompt(question)
@@ -287,23 +340,27 @@ def prompt_for_input(question:str, /, default:str|None=None, *, padding:bool=Tru
                 #
                 # We can avoid this by emitting a newline ourselves if an
                 # exception was raised (signaled by `reply' being None).
-                sys.stderr.write('\n')
+                sys.stderr.write("\n")
             if padding:
                 # If the caller requested (didn't opt out of) `padding' then we'll
                 # emit a newline regardless of whether an exception is being
                 # handled. This helps to make interactive prompts `stand out' from
                 # a surrounding `wall of text' on the terminal.
-                sys.stderr.write('\n')
+                sys.stderr.write("\n")
     except BaseException as e:
         if isinstance(e, EOFError) and default is not None:
             # If standard input isn't connected to an interactive terminal
             # but the caller provided a default we'll return that.
-            logger.debug("Got EOF from terminal, returning default value (%r) ..", default)
+            logger.debug(
+                "Got EOF from terminal, returning default value (%r) ..", default
+            )
             return default
         else:
             # Otherwise we log that the prompt was interrupted but propagate
             # the exception to the caller.
-            logger.warning("Interactive prompt was interrupted by exception!", exc_info=True)
+            logger.warning(
+                "Interactive prompt was interrupted by exception!", exc_info=True
+            )
             raise
     if default is not None and not reply:
         # If the reply is empty and `default' is None we don't want to return
@@ -317,7 +374,7 @@ def prompt_for_input(question:str, /, default:str|None=None, *, padding:bool=Tru
 
 
 @args_from0(ansi_wrap)
-def prepare_prompt_text(prompt_text:str, /, **options):
+def prepare_prompt_text(prompt_text: str, /, **options):
     """
     Wrap a text to be rendered as an interactive prompt in ANSI escape sequences.
 
@@ -329,13 +386,17 @@ def prepare_prompt_text(prompt_text:str, /, **options):
     connected to a terminal. When the standard input stream is connected to a
     terminal any escape sequences are wrapped in "readline hints".
     """
-    return (ansi_wrap(prompt_text, readline_hints=connected_to_terminal(sys.stdin), **options)
-            if terminal_supports_colors(sys.stdout)
-            else prompt_text)
+    return (
+        ansi_wrap(
+            prompt_text, readline_hints=connected_to_terminal(sys.stdin), **options
+        )
+        if terminal_supports_colors(sys.stdout)
+        else prompt_text
+    )
 
 
 def prepare_friendly_prompts():
-    u"""
+    """
     Make interactive prompts more user friendly.
 
     The prompts presented by :func:`python2:raw_input()` (in Python 2) and
@@ -380,5 +441,4 @@ def retry_limit(limit=MAX_ATTEMPTS):
 
 
 class TooManyInvalidReplies(Exception):
-
     """Raised by interactive prompts when they've received too many invalid inputs."""

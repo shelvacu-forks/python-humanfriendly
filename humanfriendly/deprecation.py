@@ -41,10 +41,16 @@ from humanfriendly.text import format
 REGISTRY = collections.defaultdict(dict)
 
 # Public identifiers that require documentation.
-__all__ = ("DeprecationProxy", "define_aliases", "deprecated_args", "get_aliases", "is_method")
+__all__ = (
+    "DeprecationProxy",
+    "define_aliases",
+    "deprecated_args",
+    "get_aliases",
+    "is_method",
+)
 
 
-def define_aliases(module_name:str, **aliases: str):
+def define_aliases(module_name: str, **aliases: str):
     """
     Update a module with backwards compatible aliases.
 
@@ -79,7 +85,7 @@ def define_aliases(module_name:str, **aliases: str):
         sys.modules[module_name] = proxy
 
 
-def get_aliases(module_name:str) -> dict[str, object]:
+def get_aliases(module_name: str) -> dict[str, object]:
     """
     Get the aliases defined by a module.
 
@@ -98,7 +104,7 @@ def get_aliases(module_name:str) -> dict[str, object]:
     return REGISTRY.get(module_name, {})
 
 
-def deprecated_args(*names:str) -> Callable[[Callable], Callable]:
+def deprecated_args(*names: str) -> Callable[[Callable], Callable]:
     """
     Deprecate positional arguments without dropping backwards compatibility.
 
@@ -143,6 +149,7 @@ def deprecated_args(*names:str) -> Callable[[Callable], Callable]:
       >>> report_choice(text='this will not give a deprecation warning')
       this will not give a deprecation warning
     """
+
     def decorator(function):
         def translate(args, kw):
             # Raise TypeError when too many positional arguments are passed to the decorated function.
@@ -168,7 +175,9 @@ def deprecated_args(*names:str) -> Callable[[Callable], Callable]:
             # Translate positional arguments to keyword arguments.
             for name, value in zip(names, args):
                 kw[name] = value
+
         if is_method(function):
+
             @functools.wraps(function)
             def wrapper(*args, **kw):
                 """Wrapper for instance methods."""
@@ -177,12 +186,15 @@ def deprecated_args(*names:str) -> Callable[[Callable], Callable]:
                 translate(args, kw)
                 return function(self, **kw)
         else:
+
             @functools.wraps(function)
             def wrapper(*args, **kw):
                 """Wrapper for module level functions."""
                 translate(args, kw)
                 return function(**kw)
+
         return wrapper
+
     return decorator
 
 
@@ -193,13 +205,12 @@ def is_method(function):
 
 
 class DeprecationProxy(ModuleType):
-
     """Emit deprecation warnings for imports that should be updated."""
 
-    module:ModuleType
-    aliases:dict[str,str]
+    module: ModuleType
+    aliases: dict[str, str]
 
-    def __init__(self, module:ModuleType, aliases:dict[str,str]):
+    def __init__(self, module: ModuleType, aliases: dict[str, str]):
         """
         Initialize an :class:`DeprecationProxy` object.
 
@@ -212,7 +223,7 @@ class DeprecationProxy(ModuleType):
         self.module = module
         self.aliases = aliases
 
-    def __getattr__(self, name:str) -> object:
+    def __getattr__(self, name: str) -> object:
         """
         Override module attribute lookup.
 
@@ -224,7 +235,12 @@ class DeprecationProxy(ModuleType):
         if target is not None:
             # Emit the deprecation warning.
             warnings.warn(
-                format("%s.%s was moved to %s, please update your imports", self.module.__name__, name, target),
+                format(
+                    "%s.%s was moved to %s, please update your imports",
+                    self.module.__name__,
+                    name,
+                    target,
+                ),
                 category=DeprecationWarning,
                 stacklevel=2,
             )
@@ -235,9 +251,11 @@ class DeprecationProxy(ModuleType):
         if value is not None:
             return value
         # Fall back to the default behavior.
-        raise AttributeError(format("module '%s' has no attribute '%s'", self.module.__name__, name))
+        raise AttributeError(
+            format("module '%s' has no attribute '%s'", self.module.__name__, name)
+        )
 
-    def resolve(self, target:str) -> object:
+    def resolve(self, target: str) -> object:
         """
         Look up the target of an alias.
 
